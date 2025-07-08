@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/components/auth/AuthProvider";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Board from "./pages/Board";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,6 +53,11 @@ const AppRoutes = () => {
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <Dashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/board/:id" element={
+        <ProtectedRoute>
+          <Board />
         </ProtectedRoute>
       } />
       <Route path="*" element={<NotFound />} />
