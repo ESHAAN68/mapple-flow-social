@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { ProfileEditor } from '@/components/profile/ProfileEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -469,7 +470,8 @@ export default function Dashboard() {
                     <ChevronDown className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                 <DropdownMenuContent align="end" className="w-56">
+                  <ProfileEditor />
                   <DropdownMenuItem>
                     <Users className="h-4 w-4 mr-2" />
                     Profile Settings
