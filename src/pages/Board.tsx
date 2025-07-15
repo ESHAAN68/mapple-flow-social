@@ -30,7 +30,7 @@ export default function Board() {
         .from('boards')
         .select(`
           *,
-          profiles!boards_owner_id_fkey(username, avatar_url)
+          profiles(username, avatar_url)
         `)
         .eq('id', id)
         .single();

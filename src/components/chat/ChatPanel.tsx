@@ -33,7 +33,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ boardId }) => {
         .from('messages')
         .select(`
           *,
-          profiles!messages_sender_id_fkey(username, avatar_url)
+          profiles(username, avatar_url)
         `)
         .eq('board_id', boardId)
         .order('created_at', { ascending: true });
@@ -68,7 +68,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ boardId }) => {
           .from('messages')
           .select(`
             *,
-            profiles!messages_sender_id_fkey(username, avatar_url)
+            profiles(username, avatar_url)
           `)
           .eq('id', payload.new.id)
           .single()
@@ -122,19 +122,23 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ boardId }) => {
       <motion.div 
         initial={{ x: 50, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        className="fixed top-4 right-4 z-50"
+        className="fixed bottom-6 right-6 z-50"
       >
         <Button
           onClick={() => setIsOpen(!isOpen)}
           variant={isOpen ? "secondary" : "default"}
-          size="sm"
-          className="relative"
+          size="lg"
+          className="relative h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
         >
-          <MessageCircle className="h-4 w-4" />
+          <MessageCircle className="h-6 w-6" />
           {messages.length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+            <motion.span 
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold"
+            >
               {messages.length > 9 ? '9+' : messages.length}
-            </span>
+            </motion.span>
           )}
         </Button>
       </motion.div>
@@ -147,7 +151,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ boardId }) => {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 350, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed right-0 top-0 h-full w-80 bg-card/95 backdrop-blur-md border-l border-border z-40 flex flex-col"
+            className="fixed right-0 bottom-0 h-[70vh] w-96 bg-card/95 backdrop-blur-md border-l border-t border-border rounded-tl-lg z-40 flex flex-col shadow-2xl"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border">

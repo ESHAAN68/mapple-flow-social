@@ -44,6 +44,21 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
     });
 
     // Handle mouse movement for cursor tracking
+    let cursorChannel: any = null;
+    
+    const initCursorChannel = () => {
+      if (cursorChannel) return cursorChannel;
+      
+      cursorChannel = supabase.channel(`board-cursors:${boardId}`, {
+        config: {
+          broadcast: { self: false }
+        }
+      });
+      
+      cursorChannel.subscribe();
+      return cursorChannel;
+    };
+
     canvas.on('mouse:move', (e) => {
       if (!user) return;
       
@@ -57,17 +72,17 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
       });
 
       // Broadcast cursor position
-      supabase.channel(`board:${boardId}`)
-        .send({
-          type: 'broadcast',
-          event: 'cursor',
-          payload: {
-            user_id: user.id,
-            username: user.email?.split('@')[0] || 'User',
-            x: pointer.x,
-            y: pointer.y
-          }
-        });
+      const channel = initCursorChannel();
+      channel.send({
+        type: 'broadcast',
+        event: 'cursor',
+        payload: {
+          user_id: user.id,
+          username: user.email?.split('@')[0] || 'User',
+          x: pointer.x,
+          y: pointer.y
+        }
+      });
     });
 
     // Handle object modifications
