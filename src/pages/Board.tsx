@@ -19,6 +19,7 @@ export default function Board() {
   const { toast } = useToast();
   const [board, setBoard] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     if (!id || !user) return;
@@ -76,11 +77,24 @@ export default function Board() {
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
+          setIsConnected(true);
           // Track presence
           await channel.track({
             user_id: user.id,
             username: user.email?.split('@')[0] || 'User',
             online_at: new Date().toISOString(),
+          });
+          
+          toast({
+            title: "Connected",
+            description: "Real-time collaboration enabled",
+          });
+        } else if (status === 'CHANNEL_ERROR') {
+          setIsConnected(false);
+          toast({
+            title: "Connection Error",
+            description: "Failed to connect to real-time features",
+            variant: "destructive"
           });
         }
       });
@@ -142,6 +156,15 @@ export default function Board() {
         <div className="bg-card/80 backdrop-blur-md rounded-lg px-3 py-2 border border-border flex items-center gap-2">
           <Users className="h-4 w-4" />
           <span className="text-sm font-medium">{users.length + 1}</span>
+          {isConnected && (
+            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+          )}
+        </div>
+        
+        {/* Connection status */}
+        <div className="bg-card/80 backdrop-blur-md rounded-lg px-3 py-2 border border-border flex items-center gap-2">
+          <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+          <span className="text-xs">{isConnected ? 'Live' : 'Offline'}</span>
         </div>
       </motion.div>
 
