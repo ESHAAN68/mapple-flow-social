@@ -404,19 +404,39 @@ export default function Dashboard() {
               </motion.div>
               
               <div className="hidden md:flex items-center gap-6">
-                <Button variant="ghost" size="sm" className="hover:bg-primary/10">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="hover:bg-primary/10"
+                  onClick={() => navigate('/workspaces')}
+                >
                   <Folder className="h-4 w-4 mr-2" />
                   Workspaces
                 </Button>
-                <Button variant="ghost" size="sm" className="hover:bg-secondary/10">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="hover:bg-secondary/10"
+                  onClick={() => navigate('/teams')}
+                >
                   <Users className="h-4 w-4 mr-2" />
                   Teams
                 </Button>
-                <Button variant="ghost" size="sm" className="hover:bg-accent/10">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="hover:bg-accent/10"
+                  onClick={() => navigate('/templates')}
+                >
                   <Star className="h-4 w-4 mr-2" />
                   Templates
                 </Button>
-                <Button variant="ghost" size="sm" className="hover:bg-green-500/10">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="hover:bg-green-500/10"
+                  onClick={() => navigate('/analytics')}
+                >
                   <BarChart3 className="h-4 w-4 mr-2" />
                   Analytics
                 </Button>

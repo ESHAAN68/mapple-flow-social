@@ -9,6 +9,10 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Board from "./pages/Board";
+import Workspaces from "./pages/Workspaces";
+import Teams from "./pages/Teams";
+import Templates from "./pages/Templates";
+import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +62,26 @@ const AppRoutes = () => {
       <Route path="/board/:id" element={
         <ProtectedRoute>
           <Board />
+        </ProtectedRoute>
+      } />
+      <Route path="/workspaces" element={
+        <ProtectedRoute>
+          <Workspaces />
+        </ProtectedRoute>
+      } />
+      <Route path="/teams" element={
+        <ProtectedRoute>
+          <Teams />
+        </ProtectedRoute>
+      } />
+      <Route path="/templates" element={
+        <ProtectedRoute>
+          <Templates />
+        </ProtectedRoute>
+      } />
+      <Route path="/analytics" element={
+        <ProtectedRoute>
+          <Analytics />
         </ProtectedRoute>
       } />
       <Route path="*" element={<NotFound />} />
