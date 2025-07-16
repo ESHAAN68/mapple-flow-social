@@ -76,14 +76,12 @@ export default function Dashboard() {
 
     const { data, error } = await supabase
       .from('boards')
-      .select(`
-        *,
-        profiles!boards_owner_id_fkey(username, avatar_url)
-      `)
+      .select('*')
       .eq('owner_id', user.id)
       .order('updated_at', { ascending: false });
 
     if (error) {
+      console.error('Error loading boards:', error);
       toast({
         title: "Error",
         description: "Failed to load boards",
