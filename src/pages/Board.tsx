@@ -4,10 +4,12 @@ import { motion } from 'framer-motion';
 import { Canvas } from '@/components/canvas/FabricCanvas';
 import { ChatPanel } from '@/components/chat/ChatPanel';
 import { CursorOverlay } from '@/components/presence/CursorOverlay';
+import { BoardSidebar } from '@/components/board/BoardSidebar';
+import { ShareModal } from '@/components/board/ShareModal';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Users } from 'lucide-react';
+import { ArrowLeft, Users, Share, Crown, Download, Settings } from 'lucide-react';
 import { usePresenceStore } from '@/store/presenceStore';
 import { useToast } from '@/hooks/use-toast';
 
@@ -20,6 +22,7 @@ export default function Board() {
   const [board, setBoard] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   useEffect(() => {
     if (!id || !user) return;
@@ -135,47 +138,105 @@ export default function Board() {
       <motion.div 
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="absolute top-4 left-4 z-50 flex items-center gap-4"
+        className="absolute top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border"
       >
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/dashboard')}
-          className="bg-card/80 backdrop-blur-md"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-        
-        <div className="bg-card/80 backdrop-blur-md rounded-lg px-4 py-2 border border-border">
-          <h1 className="font-semibold">{board.title}</h1>
-          <p className="text-sm text-muted-foreground">{board.description}</p>
-        </div>
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/dashboard')}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md flex items-center justify-center">
+                <span className="text-white text-sm font-bold">M</span>
+              </div>
+              <div>
+                <h1 className="font-semibold text-lg">{board.title}</h1>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Crown className="h-3 w-3" />
+                  <span>{board.profiles?.username || 'Owner'}</span>
+                  {board.is_public && <span>• Public</span>}
+                </div>
+              </div>
+            </div>
+          </div>
 
-        {/* Active users indicator */}
-        <div className="bg-card/80 backdrop-blur-md rounded-lg px-3 py-2 border border-border flex items-center gap-2">
-          <Users className="h-4 w-4" />
-          <span className="text-sm font-medium">{users.length + 1}</span>
-          {isConnected && (
-            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-          )}
-        </div>
-        
-        {/* Connection status */}
-        <div className="bg-card/80 backdrop-blur-md rounded-lg px-3 py-2 border border-border flex items-center gap-2">
-          <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-          <span className="text-xs">{isConnected ? 'Live' : 'Offline'}</span>
+          <div className="flex items-center gap-2">
+            {/* Active users */}
+            <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
+              <div className="flex -space-x-2">
+                {users.slice(0, 3).map((user, index) => (
+                  <div
+                    key={user.user_id}
+                    className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 border-2 border-background flex items-center justify-center"
+                    style={{ zIndex: 10 - index }}
+                  >
+                    <span className="text-xs text-white font-medium">
+                      {user.username.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                ))}
+                {users.length > 3 && (
+                  <div className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center">
+                    <span className="text-xs font-medium">+{users.length - 3}</span>
+                  </div>
+                )}
+              </div>
+              <span className="text-sm font-medium">{users.length + 1}</span>
+              {isConnected && (
+                <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+              )}
+            </div>
+            
+            {/* Action buttons */}
+            <Button variant="ghost" size="sm">
+              <Settings className="h-4 w-4" />
+            </Button>
+            
+            <Button variant="ghost" size="sm">
+              <Download className="h-4 w-4" />
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setShareModalOpen(true)}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+            >
+              <Share className="h-4 w-4 mr-2" />
+              Share
+            </Button>
+          </div>
         </div>
       </motion.div>
 
-      {/* Canvas */}
-      <Canvas boardId={id!} />
+      <div className="flex h-screen pt-16">
+        {/* Sidebar */}
+        <BoardSidebar boardId={id!} />
+        
+        {/* Main Canvas Area */}
+        <div className="flex-1 relative">
+          <Canvas boardId={id!} />
+        </div>
+      </div>
 
       {/* Chat Panel */}
       <ChatPanel boardId={id!} />
 
       {/* Cursor Overlay */}
       <CursorOverlay />
+      
+      {/* Share Modal */}
+      <ShareModal 
+        board={board}
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+      />
     </motion.div>
   );
 }
