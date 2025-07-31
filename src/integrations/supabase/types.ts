@@ -319,7 +319,7 @@ export type Database = {
           skills: string[] | null
           status: string | null
           updated_at: string | null
-          username: string
+          username: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -331,7 +331,7 @@ export type Database = {
           skills?: string[] | null
           status?: string | null
           updated_at?: string | null
-          username: string
+          username?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -343,7 +343,7 @@ export type Database = {
           skills?: string[] | null
           status?: string | null
           updated_at?: string | null
-          username?: string
+          username?: string | null
         }
         Relationships: []
       }
