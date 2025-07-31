@@ -31,16 +31,24 @@ export default function Board() {
     const loadBoard = async () => {
       const { data, error } = await supabase
         .from('boards')
-        .select(`
-          *,
-          profiles(username, avatar_url)
-        `)
+        .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (error) {
+        console.error('Error loading board:', error);
         toast({
           title: "Error",
+          description: "Failed to load board",
+          variant: "destructive"
+        });
+        navigate('/dashboard');
+        return;
+      }
+
+      if (!data) {
+        toast({
+          title: "Not Found",
           description: "Board not found or you don't have access",
           variant: "destructive"
         });
@@ -48,7 +56,14 @@ export default function Board() {
         return;
       }
 
-      setBoard(data);
+      // Get owner profile separately if needed
+      const { data: ownerProfile } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('id', data.owner_id)
+        .single();
+
+      setBoard({ ...data, profiles: ownerProfile });
       setLoading(false);
     };
 
