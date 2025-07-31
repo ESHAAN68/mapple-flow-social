@@ -13,6 +13,7 @@ import Workspaces from "./pages/Workspaces";
 import Teams from "./pages/Teams";
 import Templates from "./pages/Templates";
 import Analytics from "./pages/Analytics";
+import SecureChat from "./pages/SecureChat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -82,6 +83,11 @@ const AppRoutes = () => {
       <Route path="/analytics" element={
         <ProtectedRoute>
           <Analytics />
+        </ProtectedRoute>
+      } />
+      <Route path="/chat" element={
+        <ProtectedRoute>
+          <SecureChat />
         </ProtectedRoute>
       } />
       <Route path="*" element={<NotFound />} />

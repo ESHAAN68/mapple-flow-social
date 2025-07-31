@@ -439,6 +439,15 @@ export default function Dashboard() {
                   <BarChart3 className="h-4 w-4 mr-2" />
                   Analytics
                 </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="hover:bg-blue-500/10 border border-blue-200/30"
+                  onClick={() => navigate('/chat')}
+                >
+                  <Lock className="h-4 w-4 mr-2" />
+                  Secure Chat
+                </Button>
               </div>
             </div>
 
