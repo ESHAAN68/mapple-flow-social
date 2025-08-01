@@ -1,8 +1,8 @@
 import React from 'react';
-import { EncryptedChat } from '@/components/chat/EncryptedChat';
+import { SimpleChat } from '@/components/chat/SimpleChat';
 
 const SecureChat: React.FC = () => {
-  return <EncryptedChat />;
+  return <SimpleChat />;
 };
 
 export default SecureChat;
