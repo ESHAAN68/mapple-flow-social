@@ -90,41 +90,47 @@ export const SimpleChat: React.FC = () => {
       // Get conversations where the user is a participant
       const { data: participantData, error: participantError } = await supabase
         .from('conversation_participants')
-        .select(`
-          conversation_id,
-          user_conversations (
-            id,
-            created_at,
-            updated_at,
-            last_message_at
-          )
-        `)
+        .select('conversation_id')
         .eq('user_id', user.id);
 
       if (participantError) throw participantError;
 
+      const conversationIds = participantData?.map(p => p.conversation_id) || [];
+      if (conversationIds.length === 0) {
+        setConversations([]);
+        return;
+      }
+
+      // Get conversation details
+      const { data: conversationData, error: convError } = await supabase
+        .from('user_conversations')
+        .select('*')
+        .in('id', conversationIds);
+
+      if (convError) throw convError;
+
       // Get the other participants for each conversation
       const conversationsWithUsers = await Promise.all(
-        (participantData || []).map(async (item) => {
-          const conversation = item.user_conversations;
-          if (!conversation) return null;
-
+        (conversationData || []).map(async (conversation) => {
           // Get other participants
           const { data: otherParticipants, error: otherError } = await supabase
             .from('conversation_participants')
-            .select(`
-              user_id,
-              profiles (
-                id,
-                username,
-                display_name,
-                avatar_url
-              )
-            `)
+            .select('user_id')
             .eq('conversation_id', conversation.id)
             .neq('user_id', user.id);
 
           if (otherError) throw otherError;
+
+          let otherUser = null;
+          if (otherParticipants && otherParticipants.length > 0) {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('id, username, display_name, avatar_url')
+              .eq('id', otherParticipants[0].user_id)
+              .single();
+            
+            otherUser = profileData;
+          }
 
           // Get last message
           const { data: lastMessageData } = await supabase
@@ -136,7 +142,7 @@ export const SimpleChat: React.FC = () => {
 
           return {
             ...conversation,
-            other_user: otherParticipants?.[0]?.profiles || null,
+            other_user: otherUser,
             last_message: lastMessageData?.[0]?.content || ''
           };
         })
@@ -163,24 +169,27 @@ export const SimpleChat: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('user_messages')
-        .select(`
-          *,
-          profiles (
-            id,
-            username,
-            display_name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('conversation_id', selectedConversation)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
 
-      const messagesWithSender = (data || []).map(msg => ({
-        ...msg,
-        sender: msg.profiles
-      }));
+      // Get sender info for each message
+      const messagesWithSender = await Promise.all(
+        (data || []).map(async (msg) => {
+          const { data: senderData } = await supabase
+            .from('profiles')
+            .select('id, username, display_name, avatar_url')
+            .eq('id', msg.sender_id)
+            .single();
+
+          return {
+            ...msg,
+            sender: senderData
+          };
+        })
+      );
 
       setMessages(messagesWithSender);
     } catch (error) {
