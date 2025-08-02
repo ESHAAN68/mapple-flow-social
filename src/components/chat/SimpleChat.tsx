@@ -270,15 +270,19 @@ export const SimpleChat: React.FC = () => {
 
       if (convError) throw convError;
 
-      // Add participants
-      const { error: participantError } = await supabase
+      // Add current user first
+      const { error: userParticipantError } = await supabase
         .from('conversation_participants')
-        .insert([
-          { conversation_id: conversation.id, user_id: user.id },
-          { conversation_id: conversation.id, user_id: otherUserId }
-        ]);
+        .insert([{ conversation_id: conversation.id, user_id: user.id }]);
 
-      if (participantError) throw participantError;
+      if (userParticipantError) throw userParticipantError;
+
+      // Add other user
+      const { error: otherParticipantError } = await supabase
+        .from('conversation_participants')
+        .insert([{ conversation_id: conversation.id, user_id: otherUserId }]);
+
+      if (otherParticipantError) throw otherParticipantError;
 
       setSelectedConversation(conversation.id);
       setShowUserSearch(false);
