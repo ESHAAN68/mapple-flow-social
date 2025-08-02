@@ -240,56 +240,14 @@ export const SimpleChat: React.FC = () => {
     if (!user) return;
 
     try {
-      // Check if conversation already exists between these users
-      const { data: myParticipations } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('user_id', user.id);
+      // Use the secure function to start/find conversation
+      const { data: conversationId, error } = await supabase.rpc('start_conversation', {
+        other_user_id: otherUserId
+      });
 
-      const { data: otherParticipations } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('user_id', otherUserId);
+      if (error) throw error;
 
-      // Find common conversations
-      const myConvIds = myParticipations?.map(p => p.conversation_id) || [];
-      const otherConvIds = otherParticipations?.map(p => p.conversation_id) || [];
-      const commonConversations = myConvIds.filter(id => otherConvIds.includes(id));
-
-      if (commonConversations.length > 0) {
-        setSelectedConversation(commonConversations[0]);
-        setShowUserSearch(false);
-        return;
-      }
-
-      // Create new conversation
-      const { data: conversation, error: convError } = await supabase
-        .from('user_conversations')
-        .insert([{}])
-        .select()
-        .single();
-
-      if (convError) throw convError;
-
-      // Add current user as participant
-      const { error: userParticipantError } = await supabase
-        .from('conversation_participants')
-        .insert([{ conversation_id: conversation.id, user_id: user.id }]);
-
-      if (userParticipantError) throw userParticipantError;
-
-      // Add other user as participant (this might need admin/system role)
-      const { error: otherParticipantError } = await supabase
-        .from('conversation_participants')
-        .insert([{ conversation_id: conversation.id, user_id: otherUserId }]);
-
-      if (otherParticipantError) {
-        console.error('Error adding other participant:', otherParticipantError);
-        // If we can't add the other user, we still proceed with just ourselves
-        // In a real app, you'd need invitation/permission system
-      }
-
-      setSelectedConversation(conversation.id);
+      setSelectedConversation(conversationId);
       setShowUserSearch(false);
       loadConversations();
       
