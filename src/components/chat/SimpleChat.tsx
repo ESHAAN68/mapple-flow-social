@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserSearch } from './UserSearch';
+import { WebRTCCall } from './WebRTCCall';
 
 interface User {
   id: string;
@@ -129,7 +130,12 @@ export const SimpleChat: React.FC = () => {
               .eq('id', otherParticipants[0].user_id)
               .single();
             
-            otherUser = profileData;
+            otherUser = profileData || {
+              id: otherParticipants[0].user_id,
+              username: 'Unknown User',
+              display_name: 'Unknown User',
+              avatar_url: ''
+            };
           }
 
           // Get last message
@@ -391,13 +397,11 @@ export const SimpleChat: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Button
-                    variant={isCallActive ? "destructive" : "outline"}
-                    size="sm"
-                    onClick={() => setIsCallActive(!isCallActive)}
-                  >
-                    {isCallActive ? <PhoneOff className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
-                  </Button>
+                  <WebRTCCall 
+                    conversationId={selectedConversation}
+                    isCallActive={isCallActive}
+                    onCallToggle={() => setIsCallActive(!isCallActive)}
+                  />
                 </div>
               </div>
             </div>
@@ -477,6 +481,15 @@ export const SimpleChat: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* WebRTC Call Overlay */}
+      {isCallActive && selectedConversation && (
+        <WebRTCCall 
+          conversationId={selectedConversation}
+          isCallActive={isCallActive}
+          onCallToggle={() => setIsCallActive(!isCallActive)}
+        />
+      )}
     </div>
   );
 };
