@@ -113,29 +113,48 @@ export const SimpleChat: React.FC = () => {
       // Get the other participants for each conversation
       const conversationsWithUsers = await Promise.all(
         (conversationData || []).map(async (conversation) => {
-          // Get other participants
+          // Get other participants (excluding current user)
           const { data: otherParticipants, error: otherError } = await supabase
             .from('conversation_participants')
             .select('user_id')
             .eq('conversation_id', conversation.id)
             .neq('user_id', user.id);
 
-          if (otherError) throw otherError;
+          if (otherError) {
+            console.error('Error fetching other participants:', otherError);
+            throw otherError;
+          }
+
+          console.log('Other participants for conversation', conversation.id, ':', otherParticipants);
 
           let otherUser = null;
           if (otherParticipants && otherParticipants.length > 0) {
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('id, username, display_name, avatar_url')
-              .eq('id', otherParticipants[0].user_id)
-              .single();
-            
-            otherUser = profileData || {
-              id: otherParticipants[0].user_id,
-              username: 'Unknown User',
-              display_name: 'Unknown User',
-              avatar_url: ''
-            };
+            try {
+              const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('id, username, display_name, avatar_url')
+                .eq('id', otherParticipants[0].user_id)
+                .single();
+              
+              if (profileError) {
+                console.error('Error fetching profile:', profileError);
+              }
+
+              otherUser = profileData || {
+                id: otherParticipants[0].user_id,
+                username: 'Unknown User',
+                display_name: 'Unknown User',
+                avatar_url: ''
+              };
+            } catch (error) {
+              console.error('Profile fetch failed:', error);
+              otherUser = {
+                id: otherParticipants[0].user_id,
+                username: 'Unknown User',
+                display_name: 'Unknown User',
+                avatar_url: ''
+              };
+            }
           }
 
           // Get last message
@@ -401,6 +420,7 @@ export const SimpleChat: React.FC = () => {
                     conversationId={selectedConversation}
                     isCallActive={isCallActive}
                     onCallToggle={() => setIsCallActive(!isCallActive)}
+                    otherUser={selectedConvData?.other_user}
                   />
                 </div>
               </div>
@@ -483,11 +503,12 @@ export const SimpleChat: React.FC = () => {
       </div>
 
       {/* WebRTC Call Overlay */}
-      {isCallActive && selectedConversation && (
+      {selectedConversation && (
         <WebRTCCall 
           conversationId={selectedConversation}
           isCallActive={isCallActive}
           onCallToggle={() => setIsCallActive(!isCallActive)}
+          otherUser={selectedConvData?.other_user}
         />
       )}
     </div>

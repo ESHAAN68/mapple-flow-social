@@ -3,18 +3,26 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { Phone, PhoneOff, Video, VideoOff, Monitor, MonitorOff } from 'lucide-react';
+import { Phone, PhoneOff, Video, VideoOff, Monitor, MonitorOff, PhoneIncoming } from 'lucide-react';
+import { Card } from '@/components/ui/card';
 
 interface WebRTCCallProps {
   conversationId: string;
   isCallActive: boolean;
   onCallToggle: () => void;
+  otherUser?: {
+    id: string;
+    username: string | null;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
 }
 
 export const WebRTCCall: React.FC<WebRTCCallProps> = ({
   conversationId,
   isCallActive,
-  onCallToggle
+  onCallToggle,
+  otherUser
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -26,11 +34,16 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
   
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'ringing' | 'connected'>('idle');
+  const [incomingCall, setIncomingCall] = useState<any>(null);
 
   useEffect(() => {
-    if (isCallActive) {
-      initializeCall();
-    } else {
+    // Always listen for incoming calls
+    setupCallListener();
+
+    if (isCallActive && callStatus === 'idle') {
+      initiateCall();
+    } else if (!isCallActive) {
       endCall();
     }
 
@@ -39,8 +52,147 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
     };
   }, [isCallActive]);
 
+  const setupCallListener = () => {
+    const callChannel = supabase
+      .channel(`calls:${conversationId}`)
+      .on('broadcast', { event: 'call-invitation' }, (payload) => {
+        console.log('Received call invitation:', payload);
+        if (payload.payload.to_user_id === user?.id && payload.payload.from_user_id !== user?.id) {
+          setIncomingCall(payload.payload);
+        }
+      })
+      .on('broadcast', { event: 'call-accepted' }, (payload) => {
+        console.log('Call accepted:', payload);
+        if (payload.payload.to_user_id === user?.id) {
+          setCallStatus('connected');
+          initializeCall();
+        }
+      })
+      .on('broadcast', { event: 'call-declined' }, (payload) => {
+        console.log('Call declined:', payload);
+        if (payload.payload.to_user_id === user?.id) {
+          setCallStatus('idle');
+          onCallToggle();
+          toast({
+            title: "Call declined",
+            description: "The other user declined your call",
+            variant: "destructive",
+          });
+        }
+      })
+      .on('broadcast', { event: 'call-ended' }, (payload) => {
+        console.log('Call ended:', payload);
+        setCallStatus('idle');
+        endCall();
+      })
+      .on('broadcast', { event: 'webrtc-offer' }, async (payload) => {
+        console.log('Received WebRTC offer:', payload);
+        if (payload.payload.to_user_id === user?.id) {
+          await handleOffer(payload.payload.offer);
+        }
+      })
+      .on('broadcast', { event: 'webrtc-answer' }, async (payload) => {
+        console.log('Received WebRTC answer:', payload);
+        if (payload.payload.to_user_id === user?.id) {
+          await handleAnswer(payload.payload.answer);
+        }
+      })
+      .on('broadcast', { event: 'webrtc-ice' }, async (payload) => {
+        console.log('Received ICE candidate:', payload);
+        if (payload.payload.to_user_id === user?.id) {
+          await handleIceCandidate(payload.payload.candidate);
+        }
+      })
+      .subscribe();
+
+    channelRef.current = callChannel;
+  };
+
+  const initiateCall = () => {
+    if (!otherUser) {
+      toast({
+        title: "Cannot start call",
+        description: "No other user in conversation",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCallStatus('calling');
+    
+    // Send call invitation
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'call-invitation',
+      payload: {
+        from_user_id: user?.id,
+        to_user_id: otherUser.id,
+        conversation_id: conversationId,
+        caller_name: user?.user_metadata?.display_name || user?.email
+      }
+    });
+
+    toast({
+      title: "Calling...",
+      description: `Calling ${otherUser.display_name || otherUser.username}`,
+    });
+
+    // Timeout after 30 seconds
+    setTimeout(() => {
+      if (callStatus === 'calling') {
+        setCallStatus('idle');
+        onCallToggle();
+        toast({
+          title: "Call timeout",
+          description: "No answer from the other user",
+          variant: "destructive",
+        });
+      }
+    }, 30000);
+  };
+
+  const acceptCall = async () => {
+    if (!incomingCall) return;
+
+    setIncomingCall(null);
+    setCallStatus('connected');
+    
+    // Notify caller that call was accepted
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'call-accepted',
+      payload: {
+        from_user_id: user?.id,
+        to_user_id: incomingCall.from_user_id,
+        conversation_id: conversationId
+      }
+    });
+
+    // Start WebRTC
+    await initializeCall();
+  };
+
+  const declineCall = () => {
+    if (!incomingCall) return;
+
+    // Notify caller that call was declined
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'call-declined',
+      payload: {
+        from_user_id: user?.id,
+        to_user_id: incomingCall.from_user_id,
+        conversation_id: conversationId
+      }
+    });
+
+    setIncomingCall(null);
+  };
+
   const initializeCall = async () => {
     try {
+      console.log('Initializing WebRTC call...');
+      
       // Get user media
       const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
@@ -55,7 +207,8 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
       // Create peer connection
       const configuration = {
         iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' }
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
         ]
       };
       
@@ -63,11 +216,13 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
 
       // Add local stream tracks to peer connection
       stream.getTracks().forEach(track => {
+        console.log('Adding track:', track.kind);
         peerConnectionRef.current?.addTrack(track, stream);
       });
 
       // Handle remote stream
       peerConnectionRef.current.ontrack = (event) => {
+        console.log('Received remote stream:', event.streams[0]);
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = event.streams[0];
         }
@@ -75,24 +230,49 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
 
       // Handle ICE candidates
       peerConnectionRef.current.onicecandidate = (event) => {
+        console.log('ICE candidate:', event.candidate);
         if (event.candidate && channelRef.current) {
           channelRef.current.send({
-            type: 'webrtc',
-            event: 'ice-candidate',
-            candidate: event.candidate,
-            conversation_id: conversationId,
-            sender_id: user?.id
+            type: 'broadcast',
+            event: 'webrtc-ice',
+            payload: {
+              candidate: event.candidate,
+              from_user_id: user?.id,
+              to_user_id: otherUser?.id,
+              conversation_id: conversationId
+            }
           });
         }
       };
 
-      // Setup Supabase realtime for signaling
-      setupSignaling();
+      // Connection state changes
+      peerConnectionRef.current.onconnectionstatechange = () => {
+        console.log('Connection state:', peerConnectionRef.current?.connectionState);
+        if (peerConnectionRef.current?.connectionState === 'connected') {
+          toast({
+            title: "Call connected",
+            description: "You are now connected",
+          });
+        }
+      };
 
-      toast({
-        title: "Call started",
-        description: "Initializing video call...",
-      });
+      // If we're the caller, create offer
+      if (callStatus === 'calling') {
+        console.log('Creating offer...');
+        const offer = await peerConnectionRef.current.createOffer();
+        await peerConnectionRef.current.setLocalDescription(offer);
+        
+        channelRef.current?.send({
+          type: 'broadcast',
+          event: 'webrtc-offer',
+          payload: {
+            offer: offer,
+            from_user_id: user?.id,
+            to_user_id: otherUser?.id,
+            conversation_id: conversationId
+          }
+        });
+      }
 
     } catch (error) {
       console.error('Error initializing call:', error);
@@ -101,46 +281,16 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
         description: "Failed to access camera/microphone",
         variant: "destructive",
       });
-      onCallToggle();
+      endCall();
     }
   };
 
-  const setupSignaling = () => {
-    channelRef.current = supabase
-      .channel(`webrtc:${conversationId}`)
-      .on('broadcast', { event: 'webrtc' }, async (payload) => {
-        const { event, offer, answer, candidate } = payload.payload;
-
-        switch (event) {
-          case 'offer':
-            await handleOffer(offer);
-            break;
-          case 'answer':
-            await handleAnswer(answer);
-            break;
-          case 'ice-candidate':
-            await handleIceCandidate(candidate);
-            break;
-        }
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          // Create and send offer
-          const offer = await peerConnectionRef.current?.createOffer();
-          await peerConnectionRef.current?.setLocalDescription(offer);
-          
-          channelRef.current.send({
-            type: 'webrtc',
-            event: 'offer',
-            offer: offer,
-            conversation_id: conversationId,
-            sender_id: user?.id
-          });
-        }
-      });
-  };
-
   const handleOffer = async (offer: RTCSessionDescriptionInit) => {
+    console.log('Handling offer:', offer);
+    if (!peerConnectionRef.current) {
+      await initializeCall();
+    }
+
     if (!peerConnectionRef.current) return;
 
     await peerConnectionRef.current.setRemoteDescription(offer);
@@ -148,22 +298,32 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
     await peerConnectionRef.current.setLocalDescription(answer);
 
     channelRef.current?.send({
-      type: 'webrtc',
-      event: 'answer',
-      answer: answer,
-      conversation_id: conversationId,
-      sender_id: user?.id
+      type: 'broadcast',
+      event: 'webrtc-answer',
+      payload: {
+        answer: answer,
+        from_user_id: user?.id,
+        to_user_id: otherUser?.id,
+        conversation_id: conversationId
+      }
     });
   };
 
   const handleAnswer = async (answer: RTCSessionDescriptionInit) => {
+    console.log('Handling answer:', answer);
     if (!peerConnectionRef.current) return;
     await peerConnectionRef.current.setRemoteDescription(answer);
+    setCallStatus('connected');
   };
 
   const handleIceCandidate = async (candidate: RTCIceCandidateInit) => {
+    console.log('Handling ICE candidate:', candidate);
     if (!peerConnectionRef.current) return;
-    await peerConnectionRef.current.addIceCandidate(candidate);
+    try {
+      await peerConnectionRef.current.addIceCandidate(candidate);
+    } catch (error) {
+      console.error('Error adding ICE candidate:', error);
+    }
   };
 
   const toggleVideo = () => {
@@ -179,7 +339,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
   const toggleScreenShare = async () => {
     try {
       if (!isScreenSharing) {
-        // Start screen sharing
         const screenStream = await navigator.mediaDevices.getDisplayMedia({
           video: true,
           audio: true
@@ -199,7 +358,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
         }
 
         videoTrack.onended = () => {
-          // Switch back to camera when screen sharing ends
           setIsScreenSharing(false);
           if (localStreamRef.current) {
             const cameraTrack = localStreamRef.current.getVideoTracks()[0];
@@ -212,7 +370,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
 
         setIsScreenSharing(true);
       } else {
-        // Switch back to camera
         if (localStreamRef.current) {
           const videoTrack = localStreamRef.current.getVideoTracks()[0];
           const sender = peerConnectionRef.current?.getSenders().find(s => 
@@ -240,21 +397,33 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
   };
 
   const endCall = () => {
+    console.log('Ending call...');
+    
+    // Notify other user
+    if (callStatus !== 'idle') {
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'call-ended',
+        payload: {
+          from_user_id: user?.id,
+          to_user_id: otherUser?.id,
+          conversation_id: conversationId
+        }
+      });
+    }
+
     // Stop all tracks
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current.getTracks().forEach(track => {
+        console.log('Stopping track:', track.kind);
+        track.stop();
+      });
     }
 
     // Close peer connection
     if (peerConnectionRef.current) {
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
-    }
-
-    // Unsubscribe from channel
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
     }
 
     // Clear video elements
@@ -267,23 +436,63 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
 
     setIsVideoEnabled(false);
     setIsScreenSharing(false);
+    setCallStatus('idle');
   };
 
+  // Incoming call notification
+  if (incomingCall) {
+    return (
+      <div className="fixed inset-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 flex items-center justify-center">
+        <Card className="p-6 max-w-md">
+          <div className="text-center space-y-4">
+            <PhoneIncoming className="w-12 h-12 mx-auto text-primary animate-pulse" />
+            <div>
+              <h3 className="text-lg font-semibold">Incoming Call</h3>
+              <p className="text-muted-foreground">{incomingCall.caller_name}</p>
+            </div>
+            <div className="flex space-x-4">
+              <Button onClick={acceptCall} className="flex-1">
+                <Phone className="w-4 h-4 mr-2" />
+                Accept
+              </Button>
+              <Button onClick={declineCall} variant="destructive" className="flex-1">
+                <PhoneOff className="w-4 h-4 mr-2" />
+                Decline
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Call button when not in call
   if (!isCallActive) {
     return (
       <Button
         variant="outline"
         size="sm"
         onClick={onCallToggle}
+        disabled={!otherUser}
       >
         <Phone className="w-4 h-4" />
       </Button>
     );
   }
 
+  // Call interface when active
   return (
     <div className="fixed inset-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
       <div className="flex flex-col h-full">
+        {/* Call status indicator */}
+        <div className="p-4 text-center bg-primary text-primary-foreground">
+          <p className="text-sm">
+            {callStatus === 'calling' && 'Calling...'}
+            {callStatus === 'ringing' && 'Ringing...'}
+            {callStatus === 'connected' && 'Connected'}
+          </p>
+        </div>
+
         {/* Video container */}
         <div className="flex-1 relative">
           {/* Remote video (main) */}
@@ -291,7 +500,7 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
             ref={remoteVideoRef}
             autoPlay
             playsInline
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover bg-muted"
           />
           
           {/* Local video (picture-in-picture) */}
@@ -300,8 +509,24 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
             autoPlay
             playsInline
             muted
-            className="absolute top-4 right-4 w-48 h-36 object-cover rounded-lg border-2 border-border"
+            className="absolute top-4 right-4 w-48 h-36 object-cover rounded-lg border-2 border-border bg-muted"
           />
+
+          {/* No video placeholder */}
+          {callStatus !== 'connected' && (
+            <div className="absolute inset-0 flex items-center justify-center bg-muted">
+              <div className="text-center">
+                <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl font-semibold">
+                    {(otherUser?.display_name || otherUser?.username || 'U')[0].toUpperCase()}
+                  </span>
+                </div>
+                <p className="text-lg font-medium">
+                  {otherUser?.display_name || otherUser?.username || 'Unknown User'}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Call controls */}
@@ -311,6 +536,7 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
               variant={isVideoEnabled ? "default" : "destructive"}
               size="sm"
               onClick={toggleVideo}
+              disabled={callStatus !== 'connected'}
             >
               {isVideoEnabled ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
             </Button>
@@ -319,6 +545,7 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
               variant={isScreenSharing ? "default" : "outline"}
               size="sm"
               onClick={toggleScreenShare}
+              disabled={callStatus !== 'connected'}
             >
               {isScreenSharing ? <MonitorOff className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
             </Button>
@@ -326,7 +553,10 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
             <Button
               variant="destructive"
               size="sm"
-              onClick={onCallToggle}
+              onClick={() => {
+                endCall();
+                onCallToggle();
+              }}
             >
               <PhoneOff className="w-4 h-4" />
             </Button>
