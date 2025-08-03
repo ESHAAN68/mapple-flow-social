@@ -501,16 +501,6 @@ export const SimpleChat: React.FC = () => {
           </div>
         )}
       </div>
-
-      {/* WebRTC Call Overlay */}
-      {selectedConversation && (
-        <WebRTCCall 
-          conversationId={selectedConversation}
-          isCallActive={isCallActive}
-          onCallToggle={() => setIsCallActive(!isCallActive)}
-          otherUser={selectedConvData?.other_user}
-        />
-      )}
     </div>
   );
 };
