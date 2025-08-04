@@ -590,6 +590,10 @@ export type Database = {
         Args: { other_user_id: string }
         Returns: string
       }
+      user_can_view_conversation_participants: {
+        Args: { conversation_id: string; requesting_user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
