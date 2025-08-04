@@ -88,6 +88,8 @@ export const SimpleChat: React.FC = () => {
     if (!user) return;
 
     try {
+      console.log('Loading conversations for user:', user.id);
+      
       // Get conversations where the user is a participant
       const { data: participantData, error: participantError } = await supabase
         .from('conversation_participants')
@@ -95,9 +97,11 @@ export const SimpleChat: React.FC = () => {
         .eq('user_id', user.id);
 
       if (participantError) throw participantError;
+      console.log('Participant data:', participantData);
 
       const conversationIds = participantData?.map(p => p.conversation_id) || [];
       if (conversationIds.length === 0) {
+        console.log('No conversations found');
         setConversations([]);
         return;
       }
@@ -109,6 +113,7 @@ export const SimpleChat: React.FC = () => {
         .in('id', conversationIds);
 
       if (convError) throw convError;
+      console.log('Conversation data:', conversationData);
 
       // Get the other participants for each conversation
       const conversationsWithUsers = await Promise.all(
@@ -136,23 +141,27 @@ export const SimpleChat: React.FC = () => {
                 .eq('id', otherParticipants[0].user_id)
                 .single();
               
+              console.log('Profile data for user', otherParticipants[0].user_id, ':', profileData);
+              
               if (profileError) {
                 console.error('Error fetching profile:', profileError);
+                // If profile doesn't exist, create a fallback with the user ID
+                otherUser = {
+                  id: otherParticipants[0].user_id,
+                  username: `User_${otherParticipants[0].user_id.slice(0, 8)}`,
+                  display_name: `User_${otherParticipants[0].user_id.slice(0, 8)}`,
+                  avatar_url: null
+                };
+              } else {
+                otherUser = profileData;
               }
-
-              otherUser = profileData || {
-                id: otherParticipants[0].user_id,
-                username: 'Unknown User',
-                display_name: 'Unknown User',
-                avatar_url: ''
-              };
             } catch (error) {
               console.error('Profile fetch failed:', error);
               otherUser = {
                 id: otherParticipants[0].user_id,
-                username: 'Unknown User',
-                display_name: 'Unknown User',
-                avatar_url: ''
+                username: `User_${otherParticipants[0].user_id.slice(0, 8)}`,
+                display_name: `User_${otherParticipants[0].user_id.slice(0, 8)}`,
+                avatar_url: null
               };
             }
           }
@@ -174,9 +183,10 @@ export const SimpleChat: React.FC = () => {
       );
 
       const validConversations = conversationsWithUsers
-        .filter(conv => conv !== null)
+        .filter(conv => conv !== null && conv.other_user !== null)
         .sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
 
+      console.log('Final conversations:', validConversations);
       setConversations(validConversations);
     } catch (error) {
       console.error('Error loading conversations:', error);
@@ -332,10 +342,20 @@ export const SimpleChat: React.FC = () => {
       <div className="w-80 border-r border-border bg-card">
         <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-semibold flex items-center">
-              <MessageSquare className="w-5 h-5 mr-2 text-primary" />
-              Chat
-            </h1>
+            <div className="flex items-center">
+              <Button 
+                onClick={() => window.location.href = '/dashboard'} 
+                size="sm"
+                variant="ghost"
+                className="mr-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <h1 className="text-xl font-semibold flex items-center">
+                <MessageSquare className="w-5 h-5 mr-2 text-primary" />
+                Chat
+              </h1>
+            </div>
             <Button 
               onClick={() => setShowUserSearch(!showUserSearch)} 
               size="sm"

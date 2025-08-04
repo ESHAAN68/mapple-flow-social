@@ -472,7 +472,18 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
       <Button
         variant="outline"
         size="sm"
-        onClick={onCallToggle}
+        onClick={() => {
+          console.log('Call button clicked, other user:', otherUser);
+          if (otherUser) {
+            onCallToggle();
+          } else {
+            toast({
+              title: 'Cannot call',
+              description: 'No user selected',
+              variant: 'destructive'
+            });
+          }
+        }}
         disabled={!otherUser}
       >
         <Phone className="w-4 h-4" />
