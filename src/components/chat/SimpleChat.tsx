@@ -436,12 +436,21 @@ export const SimpleChat: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <WebRTCCall 
-                    conversationId={selectedConversation}
-                    isCallActive={isCallActive}
-                    onCallToggle={() => setIsCallActive(!isCallActive)}
-                    otherUser={selectedConvData?.other_user}
-                  />
+                  {selectedConvData?.other_user ? (
+                    <WebRTCCall 
+                      conversationId={selectedConversation}
+                      isCallActive={isCallActive}
+                      onCallToggle={() => setIsCallActive(!isCallActive)}
+                      otherUser={selectedConvData?.other_user}
+                    />
+                  ) : (
+                    <Button variant="outline" size="sm" disabled>
+                      <Phone className="w-4 h-4" />
+                    </Button>
+                  )}
+                  <div className="text-xs text-muted-foreground">
+                    Debug: {selectedConvData?.other_user ? 'User loaded' : 'No user data'}
+                  </div>
                 </div>
               </div>
             </div>
