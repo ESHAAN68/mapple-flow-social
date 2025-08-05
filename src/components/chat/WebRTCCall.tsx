@@ -53,12 +53,26 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
   }, [isCallActive]);
 
   const setupCallListener = () => {
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+    
     const callChannel = supabase
-      .channel(`calls:${conversationId}`)
+      .channel(`calls:${conversationId}`, {
+        config: {
+          broadcast: { self: false },
+          presence: { key: user?.id }
+        }
+      })
       .on('broadcast', { event: 'call-invitation' }, (payload) => {
         console.log('Received call invitation:', payload);
         if (payload.payload.to_user_id === user?.id && payload.payload.from_user_id !== user?.id) {
           setIncomingCall(payload.payload);
+          // Show toast notification for incoming call
+          toast({
+            title: "Incoming Call",
+            description: `${payload.payload.caller_name} is calling you`,
+          });
         }
       })
       .on('broadcast', { event: 'call-accepted' }, (payload) => {

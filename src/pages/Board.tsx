@@ -9,7 +9,8 @@ import { ShareModal } from '@/components/board/ShareModal';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Users, Share, Crown, Download, Settings } from 'lucide-react';
+import { ArrowLeft, Users, Share, Crown } from 'lucide-react';
+import { BoardActions } from '@/components/board/BoardActions';
 import { usePresenceStore } from '@/store/presenceStore';
 import { useToast } from '@/hooks/use-toast';
 
@@ -209,13 +210,11 @@ export default function Board() {
             </div>
             
             {/* Action buttons */}
-            <Button variant="ghost" size="sm">
-              <Settings className="h-4 w-4" />
-            </Button>
-            
-            <Button variant="ghost" size="sm">
-              <Download className="h-4 w-4" />
-            </Button>
+            <BoardActions 
+              board={board}
+              isOwner={board.owner_id === user?.id}
+              onShare={() => setShareModalOpen(true)}
+            />
             
             <Button 
               variant="ghost" 

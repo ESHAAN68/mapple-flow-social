@@ -124,7 +124,7 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
     fabricCanvas.isDrawingMode = activeTool === 'pen';
     fabricCanvas.selection = activeTool === 'select';
     
-    if (activeTool === 'pen') {
+    if (activeTool === 'pen' && fabricCanvas.freeDrawingBrush) {
       fabricCanvas.freeDrawingBrush.width = 3;
       fabricCanvas.freeDrawingBrush.color = currentColor;
     }
