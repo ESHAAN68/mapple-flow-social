@@ -3,11 +3,12 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { Phone, PhoneOff, Video, VideoOff, Monitor, MonitorOff, PhoneIncoming, Mic, MicOff, MessageSquare, Users, Settings } from 'lucide-react';
+import { Phone, PhoneOff, Video, VideoOff, Monitor, MonitorOff, PhoneIncoming, Mic, MicOff, MessageSquare, Users, Settings, AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface WebRTCCallProps {
   conversationId: string;
@@ -44,9 +45,13 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
   const [callMessages, setCallMessages] = useState<any[]>([]);
   const [newCallMessage, setNewCallMessage] = useState('');
   const [callDuration, setCallDuration] = useState(0);
-  const [participants, setParticipants] = useState<any[]>([]);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const [hasMediaPermission, setHasMediaPermission] = useState(false);
 
   useEffect(() => {
+    // Check media permissions on component mount
+    checkMediaPermissions();
+    
     // Always listen for incoming calls
     setupCallListener();
 
@@ -74,6 +79,88 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
     return () => clearInterval(interval);
   }, [callStatus]);
 
+  const checkMediaPermissions = async () => {
+    try {
+      // Check if we can access media devices
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const hasCamera = devices.some(device => device.kind === 'videoinput');
+      const hasMicrophone = devices.some(device => device.kind === 'audioinput');
+      
+      if (!hasCamera && !hasMicrophone) {
+        setMediaError('No camera or microphone found on this device');
+        return;
+      }
+
+      // Try to get user media to check permissions
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: hasCamera,
+          audio: hasMicrophone
+        });
+        
+        // Stop the test stream immediately
+        stream.getTracks().forEach(track => track.stop());
+        setHasMediaPermission(true);
+        setMediaError(null);
+      } catch (permissionError: any) {
+        console.error('Media permission error:', permissionError);
+        
+        if (permissionError.name === 'NotAllowedError') {
+          setMediaError('Camera and microphone access denied. Please allow access in your browser settings.');
+        } else if (permissionError.name === 'NotFoundError') {
+          setMediaError('No camera or microphone found. Please connect a device.');
+        } else if (permissionError.name === 'NotReadableError') {
+          setMediaError('Camera or microphone is already in use by another application.');
+        } else {
+          setMediaError(`Media access error: ${permissionError.message}`);
+        }
+        setHasMediaPermission(false);
+      }
+    } catch (error: any) {
+      console.error('Error checking media permissions:', error);
+      setMediaError('Unable to check media device permissions');
+      setHasMediaPermission(false);
+    }
+  };
+
+  const requestMediaPermissions = async () => {
+    try {
+      setMediaError(null);
+      
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+      });
+      
+      // Stop the test stream
+      stream.getTracks().forEach(track => track.stop());
+      
+      setHasMediaPermission(true);
+      toast({
+        title: "Permissions granted",
+        description: "Camera and microphone access enabled",
+      });
+    } catch (error: any) {
+      console.error('Permission request failed:', error);
+      
+      let errorMessage = 'Failed to get media permissions';
+      if (error.name === 'NotAllowedError') {
+        errorMessage = 'Please allow camera and microphone access in your browser settings';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = 'No camera or microphone found on this device';
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = 'Camera or microphone is being used by another application';
+      }
+      
+      setMediaError(errorMessage);
+      toast({
+        title: "Permission denied",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    }
+  };
+
   const setupCallListener = () => {
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
@@ -90,7 +177,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
         console.log('Received call invitation:', payload);
         if (payload.payload.to_user_id === user?.id && payload.payload.from_user_id !== user?.id) {
           setIncomingCall(payload.payload);
-          // Show toast notification for incoming call
           toast({
             title: "Incoming Call",
             description: `${payload.payload.caller_name} is calling you`,
@@ -150,7 +236,7 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
     channelRef.current = callChannel;
   };
 
-  const initiateCall = () => {
+  const initiateCall = async () => {
     if (!otherUser) {
       toast({
         title: "Cannot start call",
@@ -158,6 +244,16 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
         variant: "destructive",
       });
       return;
+    }
+
+    // Check media permissions before starting call
+    if (!hasMediaPermission) {
+      try {
+        await requestMediaPermissions();
+      } catch (error) {
+        onCallToggle(); // Turn off call if permissions fail
+        return;
+      }
     }
 
     setCallStatus('calling');
@@ -195,6 +291,16 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
 
   const acceptCall = async () => {
     if (!incomingCall) return;
+
+    // Check media permissions before accepting call
+    if (!hasMediaPermission) {
+      try {
+        await requestMediaPermissions();
+      } catch (error) {
+        declineCall();
+        return;
+      }
+    }
 
     setIncomingCall(null);
     setCallStatus('connected');
@@ -234,46 +340,101 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
   const initializeCall = async () => {
     try {
       console.log('Initializing WebRTC call...');
+      setMediaError(null);
       
-      // Get user media
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: isVideoEnabled,
-        audio: isAudioEnabled
-      });
+      // Get user media with better error handling
+      let stream: MediaStream;
+      try {
+        // Try with both video and audio first
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 }
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+      } catch (error: any) {
+        console.warn('Failed to get video+audio, trying audio only:', error);
+        
+        try {
+          // Fallback to audio only
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: false,
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            }
+          });
+          setIsVideoEnabled(false);
+          toast({
+            title: "Video unavailable",
+            description: "Using audio-only mode",
+          });
+        } catch (audioError: any) {
+          console.error('Failed to get any media:', audioError);
+          
+          let errorMessage = 'Failed to access camera and microphone';
+          if (audioError.name === 'NotAllowedError') {
+            errorMessage = 'Please allow camera and microphone access in your browser settings';
+          } else if (audioError.name === 'NotFoundError') {
+            errorMessage = 'No camera or microphone found on this device';
+          } else if (audioError.name === 'NotReadableError') {
+            errorMessage = 'Camera or microphone is being used by another application';
+          }
+          
+          setMediaError(errorMessage);
+          toast({
+            title: "Media access failed",
+            description: errorMessage,
+            variant: "destructive",
+          });
+          
+          endCall();
+          return;
+        }
+      }
       
       localStreamRef.current = stream;
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
       }
 
-      // Create peer connection
+      // Create peer connection with better configuration
       const configuration = {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ]
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' }
+        ],
+        iceCandidatePoolSize: 10
       };
       
       peerConnectionRef.current = new RTCPeerConnection(configuration);
 
       // Add local stream tracks to peer connection
       stream.getTracks().forEach(track => {
-        console.log('Adding track:', track.kind);
+        console.log('Adding track:', track.kind, track.enabled);
         peerConnectionRef.current?.addTrack(track, stream);
       });
 
       // Handle remote stream
       peerConnectionRef.current.ontrack = (event) => {
         console.log('Received remote stream:', event.streams[0]);
-        if (remoteVideoRef.current) {
+        if (remoteVideoRef.current && event.streams[0]) {
           remoteVideoRef.current.srcObject = event.streams[0];
         }
       };
 
       // Handle ICE candidates
       peerConnectionRef.current.onicecandidate = (event) => {
-        console.log('ICE candidate:', event.candidate);
         if (event.candidate && channelRef.current) {
+          console.log('Sending ICE candidate:', event.candidate);
           channelRef.current.send({
             type: 'broadcast',
             event: 'webrtc-ice',
@@ -289,19 +450,47 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
 
       // Connection state changes
       peerConnectionRef.current.onconnectionstatechange = () => {
-        console.log('Connection state:', peerConnectionRef.current?.connectionState);
-        if (peerConnectionRef.current?.connectionState === 'connected') {
+        const state = peerConnectionRef.current?.connectionState;
+        console.log('Connection state:', state);
+        
+        if (state === 'connected') {
+          setCallStatus('connected');
           toast({
             title: "Call connected",
             description: "You are now connected",
           });
+        } else if (state === 'failed' || state === 'disconnected') {
+          toast({
+            title: "Connection lost",
+            description: "Call connection was lost",
+            variant: "destructive",
+          });
+          endCall();
+        }
+      };
+
+      // ICE connection state changes
+      peerConnectionRef.current.oniceconnectionstatechange = () => {
+        const iceState = peerConnectionRef.current?.iceConnectionState;
+        console.log('ICE connection state:', iceState);
+        
+        if (iceState === 'failed') {
+          toast({
+            title: "Connection failed",
+            description: "Failed to establish peer connection",
+            variant: "destructive",
+          });
+          endCall();
         }
       };
 
       // If we're the caller, create offer
       if (callStatus === 'calling') {
         console.log('Creating offer...');
-        const offer = await peerConnectionRef.current.createOffer();
+        const offer = await peerConnectionRef.current.createOffer({
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: true
+        });
         await peerConnectionRef.current.setLocalDescription(offer);
         
         channelRef.current?.send({
@@ -316,11 +505,22 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
         });
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error initializing call:', error);
+      
+      let errorMessage = 'Failed to initialize call';
+      if (error.name === 'NotAllowedError') {
+        errorMessage = 'Camera and microphone access denied. Please allow access and try again.';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = 'No camera or microphone found. Please connect a device and try again.';
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = 'Camera or microphone is already in use. Please close other applications and try again.';
+      }
+      
+      setMediaError(errorMessage);
       toast({
         title: "Call failed",
-        description: "Failed to access camera/microphone",
+        description: errorMessage,
         variant: "destructive",
       });
       endCall();
@@ -335,32 +535,52 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
 
     if (!peerConnectionRef.current) return;
 
-    await peerConnectionRef.current.setRemoteDescription(offer);
-    const answer = await peerConnectionRef.current.createAnswer();
-    await peerConnectionRef.current.setLocalDescription(answer);
+    try {
+      await peerConnectionRef.current.setRemoteDescription(offer);
+      const answer = await peerConnectionRef.current.createAnswer();
+      await peerConnectionRef.current.setLocalDescription(answer);
 
-    channelRef.current?.send({
-      type: 'broadcast',
-      event: 'webrtc-answer',
-      payload: {
-        answer: answer,
-        from_user_id: user?.id,
-        to_user_id: otherUser?.id,
-        conversation_id: conversationId
-      }
-    });
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'webrtc-answer',
+        payload: {
+          answer: answer,
+          from_user_id: user?.id,
+          to_user_id: otherUser?.id,
+          conversation_id: conversationId
+        }
+      });
+    } catch (error) {
+      console.error('Error handling offer:', error);
+      toast({
+        title: "Call error",
+        description: "Failed to handle incoming call",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleAnswer = async (answer: RTCSessionDescriptionInit) => {
     console.log('Handling answer:', answer);
     if (!peerConnectionRef.current) return;
-    await peerConnectionRef.current.setRemoteDescription(answer);
-    setCallStatus('connected');
+    
+    try {
+      await peerConnectionRef.current.setRemoteDescription(answer);
+      setCallStatus('connected');
+    } catch (error) {
+      console.error('Error handling answer:', error);
+      toast({
+        title: "Call error",
+        description: "Failed to establish connection",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleIceCandidate = async (candidate: RTCIceCandidateInit) => {
     console.log('Handling ICE candidate:', candidate);
     if (!peerConnectionRef.current) return;
+    
     try {
       await peerConnectionRef.current.addIceCandidate(candidate);
     } catch (error) {
@@ -374,6 +594,10 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
       if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
         setIsVideoEnabled(videoTrack.enabled);
+        toast({
+          title: videoTrack.enabled ? "Video enabled" : "Video disabled",
+          description: videoTrack.enabled ? "Camera is now on" : "Camera is now off",
+        });
       }
     }
   };
@@ -384,6 +608,10 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
         setIsAudioEnabled(audioTrack.enabled);
+        toast({
+          title: audioTrack.enabled ? "Audio enabled" : "Audio disabled",
+          description: audioTrack.enabled ? "Microphone is now on" : "Microphone is now off",
+        });
       }
     }
   };
@@ -392,7 +620,9 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
     try {
       if (!isScreenSharing) {
         const screenStream = await navigator.mediaDevices.getDisplayMedia({
-          video: true,
+          video: {
+            cursor: 'always'
+          },
           audio: true
         });
 
@@ -421,6 +651,10 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
         };
 
         setIsScreenSharing(true);
+        toast({
+          title: "Screen sharing started",
+          description: "Your screen is now being shared",
+        });
       } else {
         if (localStreamRef.current) {
           const videoTrack = localStreamRef.current.getVideoTracks()[0];
@@ -437,12 +671,22 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
           }
         }
         setIsScreenSharing(false);
+        toast({
+          title: "Screen sharing stopped",
+          description: "Switched back to camera",
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error toggling screen share:', error);
+      
+      let errorMessage = 'Failed to start screen sharing';
+      if (error.name === 'NotAllowedError') {
+        errorMessage = 'Screen sharing permission denied';
+      }
+      
       toast({
         title: "Screen share failed",
-        description: "Failed to start screen sharing",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -470,6 +714,7 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
         console.log('Stopping track:', track.kind);
         track.stop();
       });
+      localStreamRef.current = null;
     }
 
     // Close peer connection
@@ -486,13 +731,14 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
       remoteVideoRef.current.srcObject = null;
     }
 
-    setIsVideoEnabled(false);
-    setIsAudioEnabled(false);
+    setIsVideoEnabled(true);
+    setIsAudioEnabled(true);
     setIsScreenSharing(false);
     setCallStatus('idle');
     setShowChat(false);
     setCallMessages([]);
     setCallDuration(0);
+    setMediaError(null);
   };
 
   const sendCallMessage = () => {
@@ -526,6 +772,36 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Show media error if there's an issue
+  if (mediaError && !isCallActive) {
+    return (
+      <div className="space-y-2">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled
+          className="opacity-50"
+        >
+          <Phone className="w-4 h-4" />
+        </Button>
+        <Alert className="w-80">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            {mediaError}
+            <Button 
+              variant="link" 
+              size="sm" 
+              className="p-0 h-auto text-xs ml-2"
+              onClick={requestMediaPermissions}
+            >
+              Try again
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   // Incoming call notification
   if (incomingCall) {
     return (
@@ -542,6 +818,14 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
               <h3 className="text-xl font-semibold mb-2">Incoming Video Call</h3>
               <p className="text-muted-foreground text-lg">{incomingCall.caller_name}</p>
             </div>
+            {mediaError && (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  {mediaError}
+                </AlertDescription>
+              </Alert>
+            )}
             <div className="flex space-x-4">
               <Button onClick={acceptCall} size="lg" className="flex-1 bg-green-600 hover:bg-green-700">
                 <Phone className="w-5 h-5 mr-2" />
@@ -561,25 +845,43 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
   // Call button when not in call
   if (!isCallActive) {
     return (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => {
-          console.log('Call button clicked, other user:', otherUser);
-          if (otherUser) {
-            onCallToggle();
-          } else {
-            toast({
-              title: 'Cannot call',
-              description: 'No user selected',
-              variant: 'destructive'
-            });
-          }
-        }}
-        disabled={!otherUser}
-      >
-        <Phone className="w-4 h-4" />
-      </Button>
+      <div className="space-y-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            console.log('Call button clicked, other user:', otherUser);
+            if (otherUser && hasMediaPermission) {
+              onCallToggle();
+            } else if (otherUser && !hasMediaPermission) {
+              requestMediaPermissions().then(() => {
+                if (hasMediaPermission) {
+                  onCallToggle();
+                }
+              });
+            } else {
+              toast({
+                title: 'Cannot call',
+                description: 'No user selected',
+                variant: 'destructive'
+              });
+            }
+          }}
+          disabled={!otherUser}
+        >
+          <Phone className="w-4 h-4" />
+        </Button>
+        {!hasMediaPermission && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={requestMediaPermissions}
+            className="text-xs"
+          >
+            Enable Media
+          </Button>
+        )}
+      </div>
     );
   }
 
@@ -653,6 +955,18 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
             <div className="absolute top-16 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
               <Monitor className="w-4 h-4" />
               Screen sharing
+            </div>
+          )}
+
+          {/* Media Error Display */}
+          {mediaError && (
+            <div className="absolute bottom-20 left-4 right-4">
+              <Alert className="bg-red-900/90 border-red-700 text-white">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  {mediaError}
+                </AlertDescription>
+              </Alert>
             </div>
           )}
         </div>
@@ -744,6 +1058,7 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
             variant="outline"
             size="lg"
             className="rounded-full w-14 h-14"
+            onClick={checkMediaPermissions}
           >
             <Settings className="w-6 h-6" />
           </Button>
