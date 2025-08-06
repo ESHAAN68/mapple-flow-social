@@ -16,6 +16,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+import { TextNotificationHandler } from '@/components/notifications/TextNotificationHandler';
+import { EnhancedProfileEditor } from '@/components/profile/EnhancedProfileEditor';
 import { 
   Plus, Search, Filter, Grid, List, Star, Clock, Users, MoreHorizontal, Folder, 
   Zap, TrendingUp, Activity, Bell, Settings, LogOut, ChevronDown, 
@@ -747,6 +749,9 @@ export default function Dashboard() {
           </Tabs>
         </motion.div>
       </main>
+      
+      {/* Text Notification Handler */}
+      <TextNotificationHandler />
     </div>
   );
 }

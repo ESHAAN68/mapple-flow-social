@@ -124,9 +124,14 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
     fabricCanvas.isDrawingMode = activeTool === 'pen';
     fabricCanvas.selection = activeTool === 'select';
     
-    if (activeTool === 'pen' && fabricCanvas.freeDrawingBrush) {
+    if (activeTool === 'pen') {
+      // Initialize drawing brush if it doesn't exist
+      if (!fabricCanvas.freeDrawingBrush) {
+        console.log('Initializing drawing brush...');
+      }
       fabricCanvas.freeDrawingBrush.width = 3;
       fabricCanvas.freeDrawingBrush.color = currentColor;
+      console.log('Drawing mode enabled with color:', currentColor);
     }
   }, [activeTool, fabricCanvas]);
 

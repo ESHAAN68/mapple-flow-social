@@ -19,6 +19,7 @@ import {
   Users,
   BarChart3
 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 
 interface UserProfileModalProps {
   userId: string | null;
