@@ -605,9 +605,7 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
     try {
       if (!isScreenSharing) {
         const screenStream = await navigator.mediaDevices.getDisplayMedia({
-          video: {
-            cursor: 'always'
-          },
+          video: true,
           audio: true
         });
 

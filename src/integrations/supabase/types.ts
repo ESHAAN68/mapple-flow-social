@@ -343,39 +343,72 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          badges: string[] | null
           bio: string | null
+          company: string | null
           created_at: string | null
+          custom_status: string | null
           display_name: string | null
           id: string
           last_seen: string | null
+          location: string | null
+          privacy_settings: Json | null
+          profile_banner: string | null
+          pronouns: string | null
           skills: string[] | null
+          social_links: Json | null
           status: string | null
+          theme_color: string | null
+          timezone: string | null
           updated_at: string | null
           username: string | null
+          website: string | null
         }
         Insert: {
           avatar_url?: string | null
+          badges?: string[] | null
           bio?: string | null
+          company?: string | null
           created_at?: string | null
+          custom_status?: string | null
           display_name?: string | null
           id: string
           last_seen?: string | null
+          location?: string | null
+          privacy_settings?: Json | null
+          profile_banner?: string | null
+          pronouns?: string | null
           skills?: string[] | null
+          social_links?: Json | null
           status?: string | null
+          theme_color?: string | null
+          timezone?: string | null
           updated_at?: string | null
           username?: string | null
+          website?: string | null
         }
         Update: {
           avatar_url?: string | null
+          badges?: string[] | null
           bio?: string | null
+          company?: string | null
           created_at?: string | null
+          custom_status?: string | null
           display_name?: string | null
           id?: string
           last_seen?: string | null
+          location?: string | null
+          privacy_settings?: Json | null
+          profile_banner?: string | null
+          pronouns?: string | null
           skills?: string[] | null
+          social_links?: Json | null
           status?: string | null
+          theme_color?: string | null
+          timezone?: string | null
           updated_at?: string | null
           username?: string | null
+          website?: string | null
         }
         Relationships: []
       }

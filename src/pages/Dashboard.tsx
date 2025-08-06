@@ -471,11 +471,7 @@ export default function Dashboard() {
                   </Button>
                 </DropdownMenuTrigger>
                  <DropdownMenuContent align="end" className="w-56">
-                  <ProfileEditor />
-                  <DropdownMenuItem>
-                    <Users className="h-4 w-4 mr-2" />
-                    Profile Settings
-                  </DropdownMenuItem>
+                  <EnhancedProfileEditor />
                   <DropdownMenuItem>
                     <Crown className="h-4 w-4 mr-2 text-amber-500" />
                     Upgrade to Pro
