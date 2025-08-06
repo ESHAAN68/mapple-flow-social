@@ -20,6 +20,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserSearch } from './UserSearch';
 import { WebRTCCall } from './WebRTCCall';
+import { UserProfileModal } from './UserProfileModal';
 
 interface User {
   id: string;
@@ -57,6 +58,8 @@ export const SimpleChat: React.FC = () => {
   const [newMessage, setNewMessage] = useState('');
   const [showUserSearch, setShowUserSearch] = useState(false);
   const [isCallActive, setIsCallActive] = useState(false);
+  const [selectedProfileUserId, setSelectedProfileUserId] = useState<string | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -355,6 +358,30 @@ export const SimpleChat: React.FC = () => {
     }
   };
 
+  const handleProfileClick = (userId: string) => {
+    setSelectedProfileUserId(userId);
+    setShowProfileModal(true);
+  };
+
+  const handleStartChatFromProfile = async (userId: string) => {
+    // Find existing conversation or create new one
+    const existingConv = conversations.find(conv => conv.other_user?.id === userId);
+    if (existingConv) {
+      setSelectedConversation(existingConv.id);
+    } else {
+      // Start new conversation
+      const { data: userData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (userData) {
+        await startConversation(userId, userData);
+      }
+    }
+  };
+
   const selectedConvData = conversations.find(c => c.id === selectedConversation);
 
   return (
@@ -449,22 +476,20 @@ export const SimpleChat: React.FC = () => {
                       {(selectedConvData?.other_user?.display_name || selectedConvData?.other_user?.username || 'U')[0].toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <div 
-                    className="cursor-pointer hover:text-primary transition-colors"
-                    onClick={() => {
-                      // Open profile modal for the other user
-                      if (selectedConvData?.other_user) {
-                        // We'll implement this with a profile modal
-                      }
-                    }}
-                  >
+                  <div>
                     <h2 className="font-medium">
-                      {selectedConvData?.other_user?.display_name || selectedConvData?.other_user?.username || 'Unknown User'}
+                      <div 
+                        className="cursor-pointer hover:text-primary transition-colors"
+                        onClick={() => {
+                          if (selectedConvData?.other_user) {
+                            handleProfileClick(selectedConvData.other_user.id);
+                          }
+                        }}
+                      >
+                        {selectedConvData?.other_user?.display_name || selectedConvData?.other_user?.username || 'Unknown User'}
+                      </div>
                     </h2>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                      <p className="text-xs text-muted-foreground">Online</p>
-                    </div>
+                    <p className="text-xs text-muted-foreground">Online</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -503,9 +528,8 @@ export const SimpleChat: React.FC = () => {
                       <Avatar 
                         className="w-6 h-6 cursor-pointer hover:scale-110 transition-transform"
                         onClick={() => {
-                          // Open profile for message sender
                           if (message.sender && message.sender_id !== user?.id) {
-                            // We'll implement this with a profile modal
+                            handleProfileClick(message.sender_id);
                           }
                         }}
                       >
@@ -570,6 +594,21 @@ export const SimpleChat: React.FC = () => {
           </div>
         )}
       </div>
+      
+      {/* User Profile Modal */}
+      <UserProfileModal
+        userId={selectedProfileUserId}
+        isOpen={showProfileModal}
+        onClose={() => {
+          setShowProfileModal(false);
+          setSelectedProfileUserId(null);
+        }}
+        onStartChat={handleStartChatFromProfile}
+        onStartCall={(userId) => {
+          // Handle starting call with specific user
+          console.log('Start call with user:', userId);
+        }}
+      />
     </div>
   );
 };
