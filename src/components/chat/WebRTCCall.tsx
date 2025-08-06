@@ -49,15 +49,12 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
   const [hasMediaPermission, setHasMediaPermission] = useState(false);
 
   useEffect(() => {
-    // Check media permissions on component mount
     checkMediaPermissions();
-    
-    // Always listen for incoming calls
     setupCallListener();
 
     if (isCallActive && callStatus === 'idle') {
       initiateCall();
-    } else if (!isCallActive) {
+    } else if (!isCallActive && callStatus !== 'idle') {
       endCall();
     }
 
@@ -66,7 +63,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
     };
   }, [isCallActive]);
 
-  // Call duration timer
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (callStatus === 'connected') {
@@ -81,7 +77,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
 
   const checkMediaPermissions = async () => {
     try {
-      // Check if we can access media devices
       const devices = await navigator.mediaDevices.enumerateDevices();
       const hasCamera = devices.some(device => device.kind === 'videoinput');
       const hasMicrophone = devices.some(device => device.kind === 'audioinput');
@@ -91,14 +86,12 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
         return;
       }
 
-      // Try to get user media to check permissions
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: hasCamera,
           audio: hasMicrophone
         });
         
-        // Stop the test stream immediately
         stream.getTracks().forEach(track => track.stop());
         setHasMediaPermission(true);
         setMediaError(null);
@@ -132,7 +125,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
         audio: true
       });
       
-      // Stop the test stream
       stream.getTracks().forEach(track => track.stop());
       
       setHasMediaPermission(true);
@@ -185,14 +177,14 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
       })
       .on('broadcast', { event: 'call-accepted' }, (payload) => {
         console.log('Call accepted:', payload);
-        if (payload.payload.to_user_id === user?.id) {
+        if (payload.payload.from_user_id === user?.id) {
           setCallStatus('connected');
-          initializeCall();
+          initializeCall(false); // false = not the initiator
         }
       })
       .on('broadcast', { event: 'call-declined' }, (payload) => {
         console.log('Call declined:', payload);
-        if (payload.payload.to_user_id === user?.id) {
+        if (payload.payload.from_user_id === user?.id) {
           setCallStatus('idle');
           onCallToggle();
           toast({
@@ -206,12 +198,7 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
         console.log('Call ended:', payload);
         setCallStatus('idle');
         endCall();
-      })
-      .on('broadcast', { event: 'call-message' }, (payload) => {
-        console.log('Call message:', payload);
-        if (payload.payload.conversation_id === conversationId) {
-          setCallMessages(prev => [...prev, payload.payload]);
-        }
+        onCallToggle();
       })
       .on('broadcast', { event: 'webrtc-offer' }, async (payload) => {
         console.log('Received WebRTC offer:', payload);
@@ -246,12 +233,11 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
       return;
     }
 
-    // Check media permissions before starting call
     if (!hasMediaPermission) {
       try {
         await requestMediaPermissions();
       } catch (error) {
-        onCallToggle(); // Turn off call if permissions fail
+        onCallToggle();
         return;
       }
     }
@@ -275,6 +261,9 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
       description: `Calling ${otherUser.display_name || otherUser.username}`,
     });
 
+    // Initialize call as initiator
+    await initializeCall(true);
+
     // Timeout after 30 seconds
     setTimeout(() => {
       if (callStatus === 'calling') {
@@ -292,7 +281,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
   const acceptCall = async () => {
     if (!incomingCall) return;
 
-    // Check media permissions before accepting call
     if (!hasMediaPermission) {
       try {
         await requestMediaPermissions();
@@ -316,14 +304,13 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
       }
     });
 
-    // Start WebRTC
-    await initializeCall();
+    // Initialize call as receiver
+    await initializeCall(false);
   };
 
   const declineCall = () => {
     if (!incomingCall) return;
 
-    // Notify caller that call was declined
     channelRef.current?.send({
       type: 'broadcast',
       event: 'call-declined',
@@ -337,15 +324,13 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
     setIncomingCall(null);
   };
 
-  const initializeCall = async () => {
+  const initializeCall = async (isInitiator: boolean = false) => {
     try {
-      console.log('Initializing WebRTC call...');
+      console.log('Initializing WebRTC call as', isInitiator ? 'initiator' : 'receiver');
       setMediaError(null);
       
-      // Get user media with better error handling
       let stream: MediaStream;
       try {
-        // Try with both video and audio first
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             width: { ideal: 1280 },
@@ -362,7 +347,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
         console.warn('Failed to get video+audio, trying audio only:', error);
         
         try {
-          // Fallback to audio only
           stream = await navigator.mediaDevices.getUserMedia({
             video: false,
             audio: {
@@ -405,7 +389,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
         localVideoRef.current.srcObject = stream;
       }
 
-      // Create peer connection with better configuration
       const configuration = {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
@@ -417,13 +400,11 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
       
       peerConnectionRef.current = new RTCPeerConnection(configuration);
 
-      // Add local stream tracks to peer connection
       stream.getTracks().forEach(track => {
         console.log('Adding track:', track.kind, track.enabled);
         peerConnectionRef.current?.addTrack(track, stream);
       });
 
-      // Handle remote stream
       peerConnectionRef.current.ontrack = (event) => {
         console.log('Received remote stream:', event.streams[0]);
         if (remoteVideoRef.current && event.streams[0]) {
@@ -431,7 +412,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
         }
       };
 
-      // Handle ICE candidates
       peerConnectionRef.current.onicecandidate = (event) => {
         if (event.candidate && channelRef.current) {
           console.log('Sending ICE candidate:', event.candidate);
@@ -448,7 +428,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
         }
       };
 
-      // Connection state changes
       peerConnectionRef.current.onconnectionstatechange = () => {
         const state = peerConnectionRef.current?.connectionState;
         console.log('Connection state:', state);
@@ -466,10 +445,10 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
             variant: "destructive",
           });
           endCall();
+          onCallToggle();
         }
       };
 
-      // ICE connection state changes
       peerConnectionRef.current.oniceconnectionstatechange = () => {
         const iceState = peerConnectionRef.current?.iceConnectionState;
         console.log('ICE connection state:', iceState);
@@ -481,12 +460,13 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
             variant: "destructive",
           });
           endCall();
+          onCallToggle();
         }
       };
 
-      // If we're the caller, create offer
-      if (callStatus === 'calling') {
-        console.log('Creating offer...');
+      // Only create offer if we're the initiator
+      if (isInitiator) {
+        console.log('Creating offer as initiator...');
         const offer = await peerConnectionRef.current.createOffer({
           offerToReceiveAudio: true,
           offerToReceiveVideo: true
@@ -524,13 +504,16 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
         variant: "destructive",
       });
       endCall();
+      onCallToggle();
     }
   };
 
   const handleOffer = async (offer: RTCSessionDescriptionInit) => {
     console.log('Handling offer:', offer);
+    
+    // Initialize call if not already done
     if (!peerConnectionRef.current) {
-      await initializeCall();
+      await initializeCall(false);
     }
 
     if (!peerConnectionRef.current) return;
@@ -550,6 +533,8 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
           conversation_id: conversationId
         }
       });
+      
+      setCallStatus('connected');
     } catch (error) {
       console.error('Error handling offer:', error);
       toast({
@@ -753,10 +738,8 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
       timestamp: new Date().toISOString()
     };
 
-    // Add to local state
     setCallMessages(prev => [...prev, message]);
 
-    // Broadcast to other participants
     channelRef.current?.send({
       type: 'broadcast',
       event: 'call-message',
@@ -772,7 +755,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Show media error if there's an issue
   if (mediaError && !isCallActive) {
     return (
       <div className="space-y-2">
@@ -802,7 +784,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
     );
   }
 
-  // Incoming call notification
   if (incomingCall) {
     return (
       <div className="fixed inset-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 flex items-center justify-center">
@@ -842,7 +823,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
     );
   }
 
-  // Call button when not in call
   if (!isCallActive) {
     return (
       <div className="space-y-2">
@@ -885,10 +865,8 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
     );
   }
 
-  // Call interface when active
   return (
     <div className="fixed inset-0 bg-background z-50 flex flex-col">
-      {/* Header */}
       <div className="bg-card/95 backdrop-blur-md border-b border-border p-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
@@ -918,9 +896,7 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Video Area */}
         <div className="flex-1 relative bg-black">
-          {/* Remote Video */}
           <video
             ref={remoteVideoRef}
             autoPlay
@@ -928,7 +904,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
             className="w-full h-full object-cover"
           />
           
-          {/* Local Video (Picture-in-Picture) */}
           <div className="absolute top-4 right-4 w-48 h-36 bg-gray-800 rounded-lg overflow-hidden border-2 border-white/20">
             <video
               ref={localVideoRef}
@@ -944,13 +919,11 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
             )}
           </div>
 
-          {/* Call Status */}
           <div className="absolute top-4 left-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
             {callStatus === 'calling' && 'Calling...'}
             {callStatus === 'connected' && `Call duration: ${formatDuration(callDuration)}`}
           </div>
 
-          {/* Screen Share Indicator */}
           {isScreenSharing && (
             <div className="absolute top-16 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
               <Monitor className="w-4 h-4" />
@@ -958,7 +931,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
             </div>
           )}
 
-          {/* Media Error Display */}
           {mediaError && (
             <div className="absolute bottom-20 left-4 right-4">
               <Alert className="bg-red-900/90 border-red-700 text-white">
@@ -971,7 +943,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
           )}
         </div>
 
-        {/* Chat Panel */}
         {showChat && (
           <div className="w-80 bg-card border-l border-border flex flex-col">
             <div className="p-3 border-b border-border">
@@ -1010,10 +981,8 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
         )}
       </div>
 
-      {/* Call Controls */}
       <div className="bg-card/95 backdrop-blur-md border-t border-border p-4">
         <div className="flex items-center justify-center gap-4">
-          {/* Audio Control */}
           <Button
             variant={isAudioEnabled ? "default" : "destructive"}
             size="lg"
@@ -1023,7 +992,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
             {isAudioEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
           </Button>
 
-          {/* Video Control */}
           <Button
             variant={isVideoEnabled ? "default" : "destructive"}
             size="lg"
@@ -1033,7 +1001,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
             {isVideoEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
           </Button>
 
-          {/* Screen Share */}
           <Button
             variant={isScreenSharing ? "default" : "outline"}
             size="lg"
@@ -1043,7 +1010,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
             {isScreenSharing ? <MonitorOff className="w-6 h-6" /> : <Monitor className="w-6 h-6" />}
           </Button>
 
-          {/* Chat Toggle */}
           <Button
             variant={showChat ? "default" : "outline"}
             size="lg"
@@ -1053,7 +1019,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
             <MessageSquare className="w-6 h-6" />
           </Button>
 
-          {/* Settings */}
           <Button
             variant="outline"
             size="lg"
@@ -1063,7 +1028,6 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
             <Settings className="w-6 h-6" />
           </Button>
 
-          {/* End Call */}
           <Button
             variant="destructive"
             size="lg"
