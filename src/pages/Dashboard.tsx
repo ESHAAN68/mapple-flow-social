@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { 
   Plus, Search, Filter, Grid, List, Star, Clock, Users, MoreHorizontal, Folder, 
   Zap, TrendingUp, Activity, Bell, Settings, LogOut, ChevronDown, 
@@ -439,29 +440,19 @@ export default function Dashboard() {
                   <BarChart3 className="h-4 w-4 mr-2" />
                   Analytics
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="hover:bg-blue-500/10 border border-blue-200/30"
-                  onClick={() => navigate('/chat')}
-                >
-                  <Lock className="h-4 w-4 mr-2" />
-                  Secure Chat
-                </Button>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
-              <Button size="sm" variant="ghost" className="relative hover:bg-primary/10">
-                <Bell className="h-4 w-4" />
-                <div className="absolute -top-1 -right-1 h-2 w-2 bg-primary rounded-full animate-pulse" />
-              </Button>
+              <NotificationCenter />
               
-              <Button size="sm" variant="ghost" className="relative hover:bg-secondary/10">
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="hover:bg-secondary/10"
+                onClick={() => navigate('/chat')}
+              >
                 <MessageCircle className="h-4 w-4" />
-                <Badge variant="secondary" className="absolute -top-2 -right-2 h-5 w-5 text-xs p-0 flex items-center justify-center">
-                  {Math.floor(Math.random() * 9) + 1}
-                </Badge>
               </Button>
               
               <DropdownMenu>

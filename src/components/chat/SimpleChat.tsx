@@ -7,6 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useNotificationStore } from '@/store/notificationStore';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { 
   Send, 
@@ -49,6 +50,7 @@ interface Message {
 export const SimpleChat: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { addNotification } = useNotificationStore();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -255,6 +257,25 @@ export const SimpleChat: React.FC = () => {
         async (payload) => {
           const newMessage = payload.new as Message;
           
+          // Add notification if message is not from current user
+          if (newMessage.sender_id !== user?.id) {
+            // Get sender info for notification
+            const { data: senderData } = await supabase
+              .from('profiles')
+              .select('username, display_name')
+              .eq('id', newMessage.sender_id)
+              .single();
+
+            addNotification({
+              type: 'message',
+              title: 'New Message',
+              message: `${senderData?.display_name || senderData?.username || 'Someone'}: ${newMessage.content.substring(0, 50)}${newMessage.content.length > 50 ? '...' : ''}`,
+              from_user_id: newMessage.sender_id,
+              from_username: senderData?.username || 'Unknown',
+              conversation_id: selectedConversation,
+            });
+          }
+
           // Get sender info
           const { data: senderData } = await supabase
             .from('profiles')
