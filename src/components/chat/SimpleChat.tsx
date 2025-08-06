@@ -449,11 +449,22 @@ export const SimpleChat: React.FC = () => {
                       {(selectedConvData?.other_user?.display_name || selectedConvData?.other_user?.username || 'U')[0].toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
+                  <div 
+                    className="cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => {
+                      // Open profile modal for the other user
+                      if (selectedConvData?.other_user) {
+                        // We'll implement this with a profile modal
+                      }
+                    }}
+                  >
                     <h2 className="font-medium">
                       {selectedConvData?.other_user?.display_name || selectedConvData?.other_user?.username || 'Unknown User'}
                     </h2>
-                    <p className="text-xs text-muted-foreground">Online</p>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                      <p className="text-xs text-muted-foreground">Online</p>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -489,7 +500,15 @@ export const SimpleChat: React.FC = () => {
                     <div className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${
                       message.sender_id === user?.id ? 'flex-row-reverse space-x-reverse' : ''
                     }`}>
-                      <Avatar className="w-6 h-6">
+                      <Avatar 
+                        className="w-6 h-6 cursor-pointer hover:scale-110 transition-transform"
+                        onClick={() => {
+                          // Open profile for message sender
+                          if (message.sender && message.sender_id !== user?.id) {
+                            // We'll implement this with a profile modal
+                          }
+                        }}
+                      >
                         <AvatarImage src={message.sender?.avatar_url || ''} />
                         <AvatarFallback className="text-xs">
                           {(message.sender?.display_name || message.sender?.username || 'U')[0].toUpperCase()}
