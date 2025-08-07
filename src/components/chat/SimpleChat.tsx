@@ -60,6 +60,7 @@ export const SimpleChat: React.FC = () => {
   const [isCallActive, setIsCallActive] = useState(false);
   const [selectedProfileUserId, setSelectedProfileUserId] = useState<string | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [userProfiles, setUserProfiles] = useState<Map<string, User>>(new Map());
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -68,6 +69,7 @@ export const SimpleChat: React.FC = () => {
   useEffect(() => {
     if (user) {
       loadConversations();
+      setupProfileSubscription();
     }
   }, [user]);
 
@@ -83,6 +85,81 @@ export const SimpleChat: React.FC = () => {
       }
     };
   }, [selectedConversation]);
+
+  // Setup real-time profile updates subscription
+  const setupProfileSubscription = () => {
+    const profileChannel = supabase
+      .channel('profile-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles'
+        },
+        (payload) => {
+          const updatedProfile = payload.new as any;
+          console.log('Profile updated in real-time:', updatedProfile);
+          
+          // Update user profiles map
+          setUserProfiles(prev => {
+            const newMap = new Map(prev);
+            newMap.set(updatedProfile.id, {
+              id: updatedProfile.id,
+              username: updatedProfile.username,
+              display_name: updatedProfile.display_name,
+              avatar_url: updatedProfile.avatar_url
+            });
+            return newMap;
+          });
+          
+          // Update conversations if the updated user is in any conversation
+          setConversations(prev => prev.map(conv => {
+            if (conv.other_user?.id === updatedProfile.id) {
+              return {
+                ...conv,
+                other_user: {
+                  ...conv.other_user,
+                  username: updatedProfile.username,
+                  display_name: updatedProfile.display_name,
+                  avatar_url: updatedProfile.avatar_url
+                }
+              };
+            }
+            return conv;
+          }));
+          
+          // Update messages if the updated user is a sender
+          setMessages(prev => prev.map(msg => {
+            if (msg.sender?.id === updatedProfile.id) {
+              return {
+                ...msg,
+                sender: {
+                  ...msg.sender,
+                  username: updatedProfile.username,
+                  display_name: updatedProfile.display_name,
+                  avatar_url: updatedProfile.avatar_url
+                }
+              };
+            }
+            return msg;
+          }));
+          
+          // Show toast notification for profile updates (except for current user)
+          if (updatedProfile.id !== user?.id) {
+            toast({
+              title: "Profile Updated",
+              description: `${updatedProfile.display_name || updatedProfile.username} updated their profile`,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(profileChannel);
+    };
+  };
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -437,14 +514,32 @@ export const SimpleChat: React.FC = () => {
                   <CardContent className="p-3">
                     <div className="flex items-center space-x-3">
                       <Avatar className="w-10 h-10">
-                        <AvatarImage src={conversation.other_user?.avatar_url || ''} />
+                        <AvatarImage 
+                          src={
+                            userProfiles.get(conversation.other_user?.id || '')?.avatar_url || 
+                            conversation.other_user?.avatar_url || 
+                            ''
+                          } 
+                        />
                         <AvatarFallback>
-                          {(conversation.other_user?.display_name || conversation.other_user?.username || 'U')[0].toUpperCase()}
+                          {(
+                            userProfiles.get(conversation.other_user?.id || '')?.display_name ||
+                            userProfiles.get(conversation.other_user?.id || '')?.username ||
+                            conversation.other_user?.display_name || 
+                            conversation.other_user?.username || 
+                            'U'
+                          )[0].toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-sm truncate">
-                          {conversation.other_user?.display_name || conversation.other_user?.username || 'Unknown User'}
+                          {
+                            userProfiles.get(conversation.other_user?.id || '')?.display_name ||
+                            userProfiles.get(conversation.other_user?.id || '')?.username ||
+                            conversation.other_user?.display_name || 
+                            conversation.other_user?.username || 
+                            'Unknown User'
+                          }
                         </h3>
                         <p className="text-xs text-muted-foreground truncate">
                           {conversation.last_message || 'No messages yet'}
@@ -471,9 +566,21 @@ export const SimpleChat: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Avatar className="w-8 h-8">
-                    <AvatarImage src={selectedConvData?.other_user?.avatar_url || ''} />
+                    <AvatarImage 
+                      src={
+                        userProfiles.get(selectedConvData?.other_user?.id || '')?.avatar_url || 
+                        selectedConvData?.other_user?.avatar_url || 
+                        ''
+                      } 
+                    />
                     <AvatarFallback>
-                      {(selectedConvData?.other_user?.display_name || selectedConvData?.other_user?.username || 'U')[0].toUpperCase()}
+                      {(
+                        userProfiles.get(selectedConvData?.other_user?.id || '')?.display_name ||
+                        userProfiles.get(selectedConvData?.other_user?.id || '')?.username ||
+                        selectedConvData?.other_user?.display_name || 
+                        selectedConvData?.other_user?.username || 
+                        'U'
+                      )[0].toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
@@ -486,7 +593,13 @@ export const SimpleChat: React.FC = () => {
                           }
                         }}
                       >
-                        {selectedConvData?.other_user?.display_name || selectedConvData?.other_user?.username || 'Unknown User'}
+                        {
+                          userProfiles.get(selectedConvData?.other_user?.id || '')?.display_name ||
+                          userProfiles.get(selectedConvData?.other_user?.id || '')?.username ||
+                          selectedConvData?.other_user?.display_name || 
+                          selectedConvData?.other_user?.username || 
+                          'Unknown User'
+                        }
                       </div>
                     </h2>
                     <p className="text-xs text-muted-foreground">Online</p>
@@ -533,9 +646,21 @@ export const SimpleChat: React.FC = () => {
                           }
                         }}
                       >
-                        <AvatarImage src={message.sender?.avatar_url || ''} />
+                        <AvatarImage 
+                          src={
+                            userProfiles.get(message.sender_id)?.avatar_url || 
+                            message.sender?.avatar_url || 
+                            ''
+                          } 
+                        />
                         <AvatarFallback className="text-xs">
-                          {(message.sender?.display_name || message.sender?.username || 'U')[0].toUpperCase()}
+                          {(
+                            userProfiles.get(message.sender_id)?.display_name ||
+                            userProfiles.get(message.sender_id)?.username ||
+                            message.sender?.display_name || 
+                            message.sender?.username || 
+                            'U'
+                          )[0].toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className={`rounded-2xl px-4 py-2 ${
