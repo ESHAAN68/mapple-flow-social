@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,18 +16,15 @@ interface ChatPanelProps {
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({ boardId }) => {
   const { user } = useAuth();
-  const {
-    messages,
-    isOpen,
-    newMessage,
-    setMessages,
-    addMessage,
-    setIsOpen,
-    setNewMessage
+  const { 
+    messages, 
+    isOpen, 
+    newMessage, 
+    setMessages, 
+    addMessage, 
+    setIsOpen, 
+    setNewMessage 
   } = useChatStore();
-
-  // Ref for scrolling to bottom
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Load existing messages
@@ -65,17 +62,29 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ boardId }) => {
         schema: 'public',
         table: 'messages',
         filter: `board_id=eq.${boardId}`
-      }, payload => {
-        const msg = payload.new;
-        addMessage({
-          id: msg.id,
-          content: msg.content,
-          sender_id: msg.sender_id,
-          sender_name: msg.profiles?.username || 'Unknown',
-          sender_avatar: msg.profiles?.avatar_url,
-          created_at: msg.created_at,
-          board_id: msg.board_id,
-        });
+      }, (payload) => {
+        // Fetch the complete message with profile data
+        supabase
+          .from('messages')
+          .select(`
+            *,
+            profiles(username, avatar_url)
+          `)
+          .eq('id', payload.new.id)
+          .single()
+          .then(({ data }) => {
+            if (data) {
+              addMessage({
+                id: data.id,
+                content: data.content,
+                sender_id: data.sender_id,
+                sender_name: (data as any).profiles?.username || 'Unknown',
+                sender_avatar: (data as any).profiles?.avatar_url,
+                created_at: data.created_at,
+                board_id: data.board_id,
+              });
+            }
+          });
       })
       .subscribe();
 
@@ -84,12 +93,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ boardId }) => {
     };
   }, [boardId, setMessages, addMessage]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isOpen]);
-
   const sendMessage = async () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !user) return;
 
     const { error } = await supabase
       .from('messages')
@@ -112,7 +117,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ boardId }) => {
   };
 
   return (
-    <> {/* Chat Toggle Button */} <motion.div
+    <>
+      {/* Chat Toggle Button */}
+      <motion.div 
         initial={{ x: 50, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         className="fixed bottom-6 right-6 z-50"
@@ -125,7 +132,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ boardId }) => {
         >
           <MessageCircle className="h-6 w-6" />
           {messages.length > 0 && (
-            <motion.span
+            <motion.span 
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold"
@@ -155,14 +162,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ boardId }) => {
             </div>
 
             {/* Messages */}
-            <ScrollArea className="flex-1 min-h-0 p-4 overflow-auto">
+            <ScrollArea className="flex-1 p-4">
               <div className="space-y-4">
                 {messages.map((message) => (
                   <motion.div
                     key={message.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`flex gap-3 ${message.sender_id === user?.id ? 'flex-row-reverse' : ''}`}
+                    className={`flex gap-3 ${
+                      message.sender_id === user?.id ? 'flex-row-reverse' : ''
+                    }`}
                   >
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={message.sender_avatar} />
@@ -170,7 +179,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ boardId }) => {
                         {message.sender_name[0]?.toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div className={`max-w-xs ${message.sender_id === user?.id ? 'text-right' : ''}`}> 
+                    <div className={`max-w-xs ${
+                      message.sender_id === user?.id ? 'text-right' : ''
+                    }`}>
                       <div className="text-xs text-muted-foreground mb-1">
                         {message.sender_name} • {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
                       </div>
@@ -178,18 +189,17 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ boardId }) => {
                         message.sender_id === user?.id
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-muted'
-                      }`}> 
+                      }`}>
                         {message.content}
                       </div>
                     </div>
                   </motion.div>
                 ))}
-                <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
 
             {/* Message Input */}
-            <div className="p-4 border-t border-border bg-card">
+            <div className="p-4 border-t border-border">
               <div className="flex gap-2">
                 <Input
                   placeholder="Type a message..."

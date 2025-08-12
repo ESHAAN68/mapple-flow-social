@@ -18,10 +18,6 @@ import { useToast } from '@/hooks/use-toast';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { TextNotificationHandler } from '@/components/notifications/TextNotificationHandler';
 import { EnhancedProfileEditor } from '@/components/profile/EnhancedProfileEditor';
-import { RealTimeAnalytics } from '@/components/analytics/RealTimeAnalytics';
-import { RazorpayPayment } from '@/components/payments/RazorpayPayment';
-import { useAnalyticsStore } from '@/store/analyticsStore';
-import { useRealTimeAnalytics } from '@/hooks/useRealTimeAnalytics';
 import { 
   Plus, Search, Filter, Grid, List, Star, Clock, Users, MoreHorizontal, Folder, 
   Zap, TrendingUp, Activity, Bell, Settings, LogOut, ChevronDown, 
@@ -57,8 +53,6 @@ export default function Dashboard() {
   const [newBoard, setNewBoard] = useState({ title: '', description: '' });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const { isPremium, incrementBoards } = useAnalyticsStore();
   const [stats, setStats] = useState({
     totalBoards: 0,
     recentActivity: 0,
@@ -72,9 +66,6 @@ export default function Dashboard() {
     board.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     board.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  // Initialize real-time analytics
-  useRealTimeAnalytics();
 
   useEffect(() => {
     if (user) {
@@ -161,7 +152,6 @@ export default function Dashboard() {
     });
 
     setBoards(prev => [data, ...prev]);
-    incrementBoards(); // Update analytics
     setNewBoard({ title: '', description: '' });
     setIsDialogOpen(false);
     loadStats();
@@ -483,15 +473,9 @@ export default function Dashboard() {
                  <DropdownMenuContent align="end" className="w-56">
                   <EnhancedProfileEditor />
                   <DropdownMenuItem>
-                    <Crown className={`h-4 w-4 mr-2 ${isPremium ? 'text-yellow-500' : 'text-amber-500'}`} />
-                    {isPremium ? 'Premium Account' : 'Upgrade to Pro'}
+                    <Crown className="h-4 w-4 mr-2 text-amber-500" />
+                    Upgrade to Pro
                   </DropdownMenuItem>
-                  {!isPremium && (
-                    <DropdownMenuItem onClick={() => setShowPaymentModal(true)}>
-                      <Zap className="h-4 w-4 mr-2 text-blue-500" />
-                      View Premium Plans
-                    </DropdownMenuItem>
-                  )}
                   <DropdownMenuItem>
                     <Settings className="h-4 w-4 mr-2" />
                     Preferences
@@ -524,8 +508,103 @@ export default function Dashboard() {
         transition={{ delay: 0.1 }}
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
       >
-        {/* Real-time Analytics */}
-        <RealTimeAnalytics className="mb-8" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
+          <Card className="glass-dark border-primary/20 hover:border-primary/40 transition-colors col-span-1 lg:col-span-1">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Boards</p>
+                  <p className="text-2xl font-bold text-primary">{stats.totalBoards}</p>
+                  <p className="text-xs text-green-400 flex items-center gap-1 mt-1">
+                    <TrendingUp className="h-3 w-3" />
+                    +12% this month
+                  </p>
+                </div>
+                <Folder className="h-8 w-8 text-primary/60" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-dark border-secondary/20 hover:border-secondary/40 transition-colors">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Active Collabs</p>
+                  <p className="text-2xl font-bold text-secondary">{stats.activeCollabs}</p>
+                  <p className="text-xs text-green-400 flex items-center gap-1 mt-1">
+                    <Activity className="h-3 w-3" />
+                    Live now
+                  </p>
+                </div>
+                <Users className="h-8 w-8 text-secondary/60" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-dark border-accent/20 hover:border-accent/40 transition-colors">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Views</p>
+                  <p className="text-2xl font-bold text-accent">{stats.totalViews}</p>
+                  <p className="text-xs text-accent/80 flex items-center gap-1 mt-1">
+                    <Eye className="h-3 w-3" />
+                    This week
+                  </p>
+                </div>
+                <Eye className="h-8 w-8 text-accent/60" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-dark border-green-500/20 hover:border-green-500/40 transition-colors">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Completed</p>
+                  <p className="text-2xl font-bold text-green-400">{stats.completedProjects}</p>
+                  <p className="text-xs text-green-400/80 flex items-center gap-1 mt-1">
+                    <Target className="h-3 w-3" />
+                    Projects
+                  </p>
+                </div>
+                <Award className="h-8 w-8 text-green-400/60" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-dark border-purple-500/20 hover:border-purple-500/40 transition-colors">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Messages</p>
+                  <p className="text-2xl font-bold text-purple-400">{stats.recentActivity * 12}</p>
+                  <p className="text-xs text-purple-400/80 flex items-center gap-1 mt-1">
+                    <MessageCircle className="h-3 w-3" />
+                    Today
+                  </p>
+                </div>
+                <MessageCircle className="h-8 w-8 text-purple-400/60" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-dark border-orange-500/20 hover:border-orange-500/40 transition-colors">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Storage</p>
+                  <p className="text-2xl font-bold text-orange-400">2.4GB</p>
+                  <p className="text-xs text-orange-400/80 flex items-center gap-1 mt-1">
+                    <Database className="h-3 w-3" />
+                    Of 10GB
+                  </p>
+                </div>
+                <Cloud className="h-8 w-8 text-orange-400/60" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </motion.div>
 
       {/* Enhanced Main Content */}
@@ -669,21 +748,6 @@ export default function Dashboard() {
       
       {/* Text Notification Handler */}
       <TextNotificationHandler />
-      
-      {/* Payment Modal */}
-      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
-        <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Crown className="h-5 w-5 text-yellow-500" />
-              Premium Plans
-            </DialogTitle>
-          </DialogHeader>
-          <div className="overflow-y-auto max-h-[80vh] pr-2">
-            <RazorpayPayment />
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
