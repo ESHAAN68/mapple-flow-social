@@ -385,7 +385,7 @@ export const SimpleChat: React.FC = () => {
   const selectedConvData = conversations.find(c => c.id === selectedConversation);
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="h-screen bg-background flex">
       {/* Conversations Sidebar */}
       <div className="w-80 border-r border-border bg-card">
         <div className="p-4 border-b border-border">
