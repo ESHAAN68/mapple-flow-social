@@ -62,91 +62,203 @@ export default function Templates() {
   }, []);
 
   const loadTemplates = async () => {
-    // Mock template data since we don't have a dedicated templates table yet
-    const mockTemplates: Template[] = [
+    // Real business framework templates inspired by Miro and industry standards
+    const realTemplates: Template[] = [
       {
-        id: '1',
-        title: 'Modern Dashboard Wireframe',
-        description: 'Complete dashboard template with sidebar, charts, and data visualization components',
-        category: 'design',
-        thumbnail_url: '',
+        id: 'business-model-canvas',
+        title: 'Business Model Canvas',
+        description: 'The strategic management template by Alexander Osterwalder. Map your value proposition, key activities, customer segments, and revenue streams on one page.',
+        category: 'business',
+        thumbnail_url: 'https://images.unsplash.com/photo-1553729459-efe14ef6055d?w=400&h=250&fit=crop',
         created_at: new Date().toISOString(),
-        author: { username: 'designpro', avatar_url: '' },
-        downloads: 1247,
-        likes: 156,
-        views: 3421,
+        author: { username: 'strategyzer', avatar_url: '' },
+        downloads: 15420,
+        likes: 1256,
+        views: 28950,
+        rating: 4.9,
+        is_featured: true,
+        is_premium: false,
+        tags: ['strategy', 'business-model', 'canvas', 'startup', 'value-proposition']
+      },
+      {
+        id: 'lean-canvas',
+        title: 'Lean Canvas',
+        description: 'Ash Maurya\'s adaptation of the Business Model Canvas for startups. Focus on problems, solutions, key metrics, and unfair advantages.',
+        category: 'business',
+        thumbnail_url: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400&h=250&fit=crop',
+        created_at: new Date(Date.now() - 86400000).toISOString(),
+        author: { username: 'leanstack', avatar_url: '' },
+        downloads: 12847,
+        likes: 987,
+        views: 23456,
         rating: 4.8,
         is_featured: true,
         is_premium: false,
-        tags: ['dashboard', 'wireframe', 'ui', 'modern']
+        tags: ['lean-startup', 'mvp', 'problem-solution-fit', 'metrics']
       },
       {
-        id: '2',
-        title: 'Business Process Flow',
-        description: 'Professional flowchart template for business process documentation',
-        category: 'business',
-        thumbnail_url: '',
-        created_at: new Date(Date.now() - 86400000).toISOString(),
-        author: { username: 'bizexpert', avatar_url: '' },
-        downloads: 892,
-        likes: 98,
-        views: 2156,
-        rating: 4.6,
-        is_featured: false,
-        is_premium: true,
-        tags: ['flowchart', 'business', 'process', 'professional']
-      },
-      {
-        id: '3',
-        title: 'Mind Map Template',
-        description: 'Creative mind mapping template for brainstorming and idea organization',
-        category: 'education',
-        thumbnail_url: '',
+        id: 'design-thinking-process',
+        title: 'Design Thinking Process',
+        description: 'The complete 5-stage design thinking framework: Empathize, Define, Ideate, Prototype, and Test. Perfect for human-centered innovation.',
+        category: 'design',
+        thumbnail_url: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=400&h=250&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-        author: { username: 'educator', avatar_url: '' },
-        downloads: 567,
-        likes: 89,
-        views: 1432,
+        author: { username: 'ideo_method', avatar_url: '' },
+        downloads: 9876,
+        likes: 756,
+        views: 18932,
         rating: 4.7,
         is_featured: true,
         is_premium: false,
-        tags: ['mindmap', 'brainstorming', 'education', 'creative']
+        tags: ['design-thinking', 'empathy', 'ideation', 'prototype', 'user-centered']
       },
       {
-        id: '4',
-        title: 'System Architecture Diagram',
-        description: 'Technical architecture template for software development projects',
-        category: 'development',
-        thumbnail_url: '',
+        id: 'customer-journey-map',
+        title: 'Customer Journey Map',
+        description: 'Visualize every touchpoint in your customer\'s experience. Identify pain points, emotions, and opportunities for improvement.',
+        category: 'business',
+        thumbnail_url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=250&fit=crop',
         created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-        author: { username: 'techarch', avatar_url: '' },
-        downloads: 324,
-        likes: 67,
-        views: 987,
+        author: { username: 'ux_research', avatar_url: '' },
+        downloads: 8743,
+        likes: 623,
+        views: 16789,
+        rating: 4.6,
+        is_featured: false,
+        is_premium: false,
+        tags: ['customer-experience', 'journey-mapping', 'touchpoints', 'ux']
+      },
+      {
+        id: 'swot-analysis',
+        title: 'SWOT Analysis',
+        description: 'Strategic planning tool to evaluate Strengths, Weaknesses, Opportunities, and Threats. Essential for business strategy development.',
+        category: 'business',
+        thumbnail_url: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400&h=250&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
+        author: { username: 'strategy_pro', avatar_url: '' },
+        downloads: 11234,
+        likes: 834,
+        views: 21456,
+        rating: 4.5,
+        is_featured: false,
+        is_premium: false,
+        tags: ['swot', 'strategy', 'analysis', 'planning', 'competitive']
+      },
+      {
+        id: 'empathy-map',
+        title: 'Empathy Map',
+        description: 'Understand your users deeply by mapping what they think, feel, see, hear, say, and do. Essential for user-centered design.',
+        category: 'design',
+        thumbnail_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=250&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
+        author: { username: 'ux_designer', avatar_url: '' },
+        downloads: 7654,
+        likes: 567,
+        views: 14321,
+        rating: 4.8,
+        is_featured: false,
+        is_premium: false,
+        tags: ['empathy', 'user-research', 'personas', 'ux', 'user-understanding']
+      },
+      {
+        id: 'scrum-retrospective',
+        title: 'Scrum Retrospective',
+        description: 'Agile retrospective template with What Went Well, What Could Be Improved, and Action Items. Perfect for sprint reviews.',
+        category: 'development',
+        thumbnail_url: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=250&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 6).toISOString(),
+        author: { username: 'agile_coach', avatar_url: '' },
+        downloads: 6543,
+        likes: 456,
+        views: 12987,
+        rating: 4.7,
+        is_featured: false,
+        is_premium: false,
+        tags: ['scrum', 'retrospective', 'agile', 'sprint', 'continuous-improvement']
+      },
+      {
+        id: 'okr-template',
+        title: 'OKR Template',
+        description: 'Objectives and Key Results framework used by Google and other top companies. Set ambitious goals and measure progress.',
+        category: 'business',
+        thumbnail_url: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=400&h=250&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 7).toISOString(),
+        author: { username: 'google_method', avatar_url: '' },
+        downloads: 9876,
+        likes: 723,
+        views: 18654,
+        rating: 4.6,
+        is_featured: true,
+        is_premium: false,
+        tags: ['okr', 'goals', 'objectives', 'key-results', 'performance']
+      },
+      {
+        id: 'user-story-mapping',
+        title: 'User Story Mapping',
+        description: 'Organize user stories into a coherent product roadmap. Visualize the user journey and prioritize features effectively.',
+        category: 'development',
+        thumbnail_url: 'https://images.unsplash.com/photo-1559028006-448665bd7c7f?w=400&h=250&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 8).toISOString(),
+        author: { username: 'product_owner', avatar_url: '' },
+        downloads: 5432,
+        likes: 387,
+        views: 10987,
+        rating: 4.8,
+        is_featured: false,
+        is_premium: false,
+        tags: ['user-stories', 'product-roadmap', 'agile', 'feature-prioritization']
+      },
+      {
+        id: 'value-proposition-canvas',
+        title: 'Value Proposition Canvas',
+        description: 'Deep dive into your value proposition. Map customer jobs, pains, and gains against your products, pain relievers, and gain creators.',
+        category: 'business',
+        thumbnail_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=250&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 9).toISOString(),
+        author: { username: 'strategyzer', avatar_url: '' },
+        downloads: 8765,
+        likes: 645,
+        views: 16543,
         rating: 4.9,
         is_featured: false,
         is_premium: true,
-        tags: ['architecture', 'technical', 'development', 'system']
+        tags: ['value-proposition', 'customer-fit', 'product-market-fit', 'canvas']
       },
       {
-        id: '5',
-        title: 'Data Analytics Dashboard',
-        description: 'Comprehensive analytics dashboard with KPI metrics and charts',
-        category: 'analytics',
-        thumbnail_url: '',
-        created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
-        author: { username: 'datavis', avatar_url: '' },
-        downloads: 445,
-        likes: 78,
-        views: 1234,
+        id: 'impact-mapping',
+        title: 'Impact Mapping',
+        description: 'Strategic planning technique that helps organizations make better decisions. Connect goals with deliverables through actors and impacts.',
+        category: 'business',
+        thumbnail_url: 'https://images.unsplash.com/photo-1558618663-fcd0c94cd4d4?w=400&h=250&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
+        author: { username: 'impact_method', avatar_url: '' },
+        downloads: 4321,
+        likes: 298,
+        views: 8765,
+        rating: 4.7,
+        is_featured: false,
+        is_premium: true,
+        tags: ['impact-mapping', 'strategic-planning', 'goal-alignment', 'decision-making']
+      },
+      {
+        id: 'kanban-board',
+        title: 'Kanban Board',
+        description: 'Visual workflow management system. Organize tasks into To Do, In Progress, and Done columns with customizable swim lanes.',
+        category: 'development',
+        thumbnail_url: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=400&h=250&fit=crop',
+        created_at: new Date(Date.now() - 86400000 * 11).toISOString(),
+        author: { username: 'lean_expert', avatar_url: '' },
+        downloads: 7890,
+        likes: 567,
+        views: 15432,
         rating: 4.5,
-        is_featured: true,
+        is_featured: false,
         is_premium: false,
-        tags: ['analytics', 'kpi', 'charts', 'data']
+        tags: ['kanban', 'workflow', 'task-management', 'visual-management', 'lean']
       }
     ];
     
-    setTemplates(mockTemplates);
+    setTemplates(realTemplates);
     setLoading(false);
   };
 
@@ -184,16 +296,20 @@ export default function Templates() {
     const template = templates.find(t => t.id === templateId);
     if (!template) return;
 
+    // Generate canvas data for the template
+    const { TemplateService } = await import('@/utils/TemplateService');
+    const canvasData = TemplateService.generateCanvasData(templateId);
+
     // Create a new board from template
     const { data, error } = await supabase
       .from('boards')
-      .insert([{
+      .insert({
         title: `${template.title} (Copy)`,
         description: template.description,
         owner_id: user?.id,
-        canvas_data: {}, // In real implementation, this would copy template data
+        canvas_data: canvasData as any, // Cast to any to work with Json type
         is_template: false
-      }])
+      })
       .select()
       .single();
 

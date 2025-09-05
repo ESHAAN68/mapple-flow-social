@@ -12,6 +12,24 @@ interface CanvasProps {
   boardId: string;
 }
 
+interface TemplateObject {
+  id: string;
+  type: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  fill?: string;
+  stroke?: string;
+  text?: string;
+  fontSize?: number;
+  fontFamily?: string;
+  textAlign?: string;
+  backgroundColor?: string;
+  rx?: number;
+  ry?: number;
+}
+
 export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
@@ -39,6 +57,83 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
 
     setFabricCanvas(canvas);
     setCanvas(canvas);
+
+    // Load template data from board
+    const loadBoardData = async () => {
+      try {
+        const { data: boardData, error } = await supabase
+          .from('boards')
+          .select('canvas_data')
+          .eq('id', boardId)
+          .single();
+
+        if (error) {
+          console.error('Error loading board data:', error);
+          return;
+        }
+
+        if (boardData?.canvas_data && typeof boardData.canvas_data === 'object') {
+          const canvasData = boardData.canvas_data as any;
+          
+          if (canvasData.objects) {
+            // Load template objects
+            const templateObjects = canvasData.objects as TemplateObject[];
+            templateObjects.forEach((objData) => {
+              let fabricObject: any = null;
+
+              switch (objData.type) {
+                case 'rect':
+                  fabricObject = new Rect({
+                    left: objData.left,
+                    top: objData.top,
+                    width: objData.width,
+                    height: objData.height,
+                    fill: objData.fill,
+                    stroke: objData.stroke,
+                    rx: objData.rx,
+                    ry: objData.ry,
+                  });
+                  break;
+                case 'circle':
+                  fabricObject = new Circle({
+                    left: objData.left,
+                    top: objData.top,
+                    radius: objData.width / 2,
+                    fill: objData.fill,
+                    stroke: objData.stroke,
+                  });
+                  break;
+                case 'text':
+                  fabricObject = new IText(objData.text || 'Template Text', {
+                    left: objData.left,
+                    top: objData.top,
+                    fontSize: objData.fontSize || 14,
+                    fontFamily: objData.fontFamily || 'Inter, sans-serif',
+                    textAlign: objData.textAlign || 'left',
+                    fill: objData.fill || '#000000',
+                  });
+                  break;
+              }
+
+              if (fabricObject) {
+                canvas.add(fabricObject);
+              }
+            });
+            
+            // Set background color if specified
+            if (canvasData.backgroundColor) {
+              canvas.backgroundColor = canvasData.backgroundColor;
+            }
+            
+            canvas.renderAll();
+          }
+        }
+      } catch (error) {
+        console.error('Error loading template data:', error);
+      }
+    };
+
+    loadBoardData();
 
     // Handle object selection
     canvas.on('selection:created', (e) => {
