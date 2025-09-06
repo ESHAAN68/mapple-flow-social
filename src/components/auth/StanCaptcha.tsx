@@ -11,20 +11,46 @@ export const StanCaptcha: React.FC<StanCaptchaProps> = ({ onComplete, isComplete
   const [answer, setAnswer] = useState('');
   const [isSmiling, setIsSmiling] = useState(false);
 
-  const correctAnswers = [
-    'nowhere', 'home', 'work', 'school', 'store', 'outside', 
-    'away', 'out', 'shopping', 'office', 'gym', 'park'
+  const positiveWords = [
+    'happy', 'smile', 'love', 'great', 'awesome', 'wonderful', 'amazing', 
+    'fantastic', 'beautiful', 'good', 'nice', 'excellent', 'perfect',
+    'joy', 'fun', 'exciting', 'brilliant', 'marvelous', 'superb',
+    'delightful', 'pleasant', 'cheerful', 'magnificent', 'spectacular',
+    'incredible', 'outstanding', 'fabulous', 'terrific', 'splendid',
+    'lovely', 'charming', 'sweet', 'kind', 'caring', 'warm', 'cozy'
+  ];
+
+  const negativePhrases = [
+    'sad', 'angry', 'hate', 'terrible', 'awful', 'horrible', 'bad',
+    'ugly', 'stupid', 'dumb', 'worst', 'suck', 'boring', 'annoying'
   ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (correctAnswers.some(correct => 
-      answer.toLowerCase().includes(correct) || correct.includes(answer.toLowerCase())
-    )) {
+    const lowerAnswer = answer.toLowerCase().trim();
+    
+    // Check if the answer contains positive words
+    const hasPositiveWords = positiveWords.some(word => lowerAnswer.includes(word));
+    const hasNegativeWords = negativePhrases.some(word => lowerAnswer.includes(word));
+    
+    // Accept if it has positive words and no negative words, or if it's a generally uplifting phrase
+    const upliftingPhrases = [
+      'you are amazing', 'you are great', 'you are awesome', 'you are wonderful',
+      'you are the best', 'you are fantastic', 'you are incredible', 'you are special',
+      'you matter', 'you are loved', 'you are important', 'you are valued',
+      'keep going', 'stay strong', 'be happy', 'have a great day',
+      'you got this', 'believe in yourself', 'you are enough'
+    ];
+    
+    const isUpliftingPhrase = upliftingPhrases.some(phrase => 
+      lowerAnswer.includes(phrase) || phrase.includes(lowerAnswer)
+    );
+    
+    if ((hasPositiveWords && !hasNegativeWords) || isUpliftingPhrase || lowerAnswer.length > 10) {
       setIsSmiling(true);
       setTimeout(() => {
         onComplete();
-      }, 500);
+      }, 800);
     } else {
       // Shake animation for wrong answer
       const stanElement = document.getElementById('stan-character');
@@ -34,6 +60,10 @@ export const StanCaptcha: React.FC<StanCaptchaProps> = ({ onComplete, isComplete
           stanElement.classList.remove('shake');
         }, 500);
       }
+      // Clear the input to try again
+      setTimeout(() => {
+        setAnswer('');
+      }, 500);
     }
   };
 
@@ -56,10 +86,14 @@ export const StanCaptcha: React.FC<StanCaptchaProps> = ({ onComplete, isComplete
               
               {/* Eyes */}
               <div className="absolute top-6 left-3 w-6 h-4 bg-white rounded border border-gray-800">
-                <div className={`w-3 h-3 bg-gray-800 rounded-full mt-0.5 ml-0.5 transition-all duration-300 ${isSmiling ? 'animate-bounce' : ''}`}></div>
+                <div className={`w-3 h-3 bg-gray-800 rounded-full mt-0.5 ml-0.5 transition-all duration-500 ${
+                  isSmiling ? 'transform scale-110 animate-pulse' : ''
+                }`}></div>
               </div>
               <div className="absolute top-6 right-3 w-6 h-4 bg-white rounded border border-gray-800">
-                <div className={`w-3 h-3 bg-gray-800 rounded-full mt-0.5 ml-0.5 transition-all duration-300 ${isSmiling ? 'animate-bounce' : ''}`}></div>
+                <div className={`w-3 h-3 bg-gray-800 rounded-full mt-0.5 ml-0.5 transition-all duration-500 ${
+                  isSmiling ? 'transform scale-110 animate-pulse' : ''
+                }`}></div>
               </div>
               
               {/* Glasses */}
@@ -71,8 +105,8 @@ export const StanCaptcha: React.FC<StanCaptchaProps> = ({ onComplete, isComplete
               <div className="absolute top-10 left-1/2 transform -translate-x-1/2 w-1 h-2 bg-gray-600"></div>
               
               {/* Mouth */}
-              <div className={`absolute top-12 left-1/2 transform -translate-x-1/2 transition-all duration-300 ${
-                isSmiling ? 'w-6 h-3 border-b-2 border-l-2 border-r-2 border-gray-800 rounded-b-full' : 'w-4 h-1 bg-gray-800'
+              <div className={`absolute top-12 left-1/2 transform -translate-x-1/2 transition-all duration-500 ${
+                isSmiling ? 'w-6 h-3 border-b-2 border-l-2 border-r-2 border-gray-800 rounded-b-full animate-pulse' : 'w-4 h-1 bg-gray-800 rounded'
               }`}></div>
               
               {/* Tears (when not smiling) */}
@@ -91,8 +125,13 @@ export const StanCaptcha: React.FC<StanCaptchaProps> = ({ onComplete, isComplete
         </div>
         
         <p className="text-foreground font-medium mb-4">
-          Prove you're human. Make Stan smile.
+          {isSmiling ? "Thank you! Stan is happy! 😊" : "Prove you're human. Make Stan smile."}
         </p>
+        {!isSmiling && (
+          <p className="text-sm text-muted-foreground mb-4">
+            💡 Hint: Say something nice to Stan!
+          </p>
+        )}
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-3">
@@ -100,7 +139,7 @@ export const StanCaptcha: React.FC<StanCaptchaProps> = ({ onComplete, isComplete
           type="text"
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
-          placeholder="Where did you go?"
+          placeholder="Say something nice to Stan..."
           className="text-center"
           required
         />
