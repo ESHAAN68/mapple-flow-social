@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from './AuthProvider';
 import { Loader2 } from 'lucide-react';
+import { StanCaptcha } from './StanCaptcha';
 
 interface SignUpFormProps {
   onToggleMode: () => void;
@@ -16,10 +17,13 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onToggleMode }) => {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
+  const [captchaCompleted, setCaptchaCompleted] = useState(false);
   const { signUp, signInWithGoogle } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!captchaCompleted) return;
+    
     setLoading(true);
     
     try {
@@ -32,6 +36,8 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onToggleMode }) => {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!captchaCompleted) return;
+    
     setLoading(true);
     try {
       await signInWithGoogle();
@@ -51,6 +57,11 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onToggleMode }) => {
         <CardDescription>Sign up for a new account</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <StanCaptcha 
+          onComplete={() => setCaptchaCompleted(true)} 
+          isCompleted={captchaCompleted} 
+        />
+        
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
@@ -86,7 +97,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onToggleMode }) => {
               minLength={6}
             />
           </div>
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button type="submit" className="w-full" disabled={loading || !captchaCompleted}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Sign Up
           </Button>
@@ -105,7 +116,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onToggleMode }) => {
           variant="outline"
           className="w-full"
           onClick={handleGoogleSignIn}
-          disabled={loading}
+          disabled={loading || !captchaCompleted}
         >
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Google

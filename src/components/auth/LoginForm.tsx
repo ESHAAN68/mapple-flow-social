@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from './AuthProvider';
 import { Loader2 } from 'lucide-react';
+import { StanCaptcha } from './StanCaptcha';
 
 interface LoginFormProps {
   onToggleMode: () => void;
@@ -15,10 +16,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [captchaCompleted, setCaptchaCompleted] = useState(false);
   const { signIn, signInWithGoogle } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!captchaCompleted) return;
+    
     setLoading(true);
     
     try {
@@ -31,6 +35,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!captchaCompleted) return;
+    
     setLoading(true);
     try {
       await signInWithGoogle();
@@ -50,6 +56,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
         <CardDescription>Sign in to your account</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <StanCaptcha 
+          onComplete={() => setCaptchaCompleted(true)} 
+          isCompleted={captchaCompleted} 
+        />
+        
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -73,7 +84,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
               required
             />
           </div>
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button type="submit" className="w-full" disabled={loading || !captchaCompleted}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Sign In
           </Button>
@@ -92,7 +103,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
           variant="outline"
           className="w-full"
           onClick={handleGoogleSignIn}
-          disabled={loading}
+          disabled={loading || !captchaCompleted}
         >
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Google
