@@ -13,5 +13,30 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce'
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'supabase-js-web'
+    }
   }
 });
+
+// Clear corrupted session data on initialization
+const clearCorruptedSession = async () => {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error && error.message.includes('refresh_token_not_found')) {
+      console.log('Clearing corrupted session data...');
+      await supabase.auth.signOut();
+      localStorage.removeItem('supabase.auth.token');
+      sessionStorage.clear();
+    }
+  } catch (error) {
+    console.log('Session cleanup completed');
+  }
+};
+
+// Initialize session cleanup
+clearCorruptedSession();

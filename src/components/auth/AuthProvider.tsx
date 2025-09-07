@@ -29,15 +29,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { toast } = useToast();
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    // Get initial session with error handling
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Session error:', error);
+          if (error.message.includes('refresh_token_not_found') || error.message.includes('Invalid Refresh Token')) {
+            // Clear corrupted session
+            await supabase.auth.signOut();
+            localStorage.removeItem('supabase.auth.token');
+            sessionStorage.clear();
+            setUser(null);
+          }
+        } else {
+          setUser(session?.user ?? null);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.id);
+        
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('Token refreshed successfully');
+        }
+        
+        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+          localStorage.removeItem('supabase.auth.token');
+          sessionStorage.clear();
+        }
+        
         setUser(session?.user ?? null);
         setLoading(false);
       }
@@ -47,73 +79,110 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
+    try {
+      // Clear any existing corrupted session first
+      await supabase.auth.signOut();
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
       });
+      
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+        throw error;
+      }
+      
+      if (data.user) {
+        toast({
+          title: "Welcome back!",
+          description: "Successfully signed in",
+        });
+      }
+    } catch (error: any) {
+      console.error('Sign in error:', error);
       throw error;
     }
   };
 
   const signUp = async (email: string, password: string, username: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          username,
-          display_name: username
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username,
+            display_name: username
+          }
         }
-      }
-    });
-    
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
       });
+      
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+        throw error;
+      }
+      
+      toast({
+        title: "Success",
+        description: "Please check your email to confirm your account"
+      });
+    } catch (error: any) {
+      console.error('Sign up error:', error);
       throw error;
     }
-    
-    toast({
-      title: "Success",
-      description: "Please check your email to confirm your account"
-    });
   };
 
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/dashboard`
-      }
-    });
-    
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
       });
+      
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+        throw error;
+      }
+    } catch (error: any) {
+      console.error('Google sign in error:', error);
       throw error;
     }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      // Clear all local storage regardless of error
+      localStorage.removeItem('supabase.auth.token');
+      sessionStorage.clear();
+      
+      if (error) {
+        console.warn('Sign out error (continuing anyway):', error);
+      }
+      
+      setUser(null);
+    } catch (error: any) {
+      console.error('Sign out error:', error);
+      // Force clear session even if signOut fails
+      localStorage.removeItem('supabase.auth.token');
+      sessionStorage.clear();
+      setUser(null);
       });
     }
   };
