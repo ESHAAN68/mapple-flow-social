@@ -22,7 +22,10 @@ export const StanCaptcha: React.FC<StanCaptchaProps> = ({ onComplete, isComplete
 
   const negativePhrases = [
     'sad', 'angry', 'hate', 'terrible', 'awful', 'horrible', 'bad',
-    'ugly', 'stupid', 'dumb', 'worst', 'suck', 'boring', 'annoying'
+    'ugly', 'stupid', 'dumb', 'worst', 'suck', 'boring', 'annoying',
+    'trash', 'garbage', 'worthless', 'useless', 'pathetic', 'loser',
+    'idiot', 'moron', 'failure', 'disgusting', 'gross', 'creepy',
+    'weird', 'lame', 'cringe', 'sucks', 'die', 'kill', 'destroy'
   ];
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -46,7 +49,7 @@ export const StanCaptcha: React.FC<StanCaptchaProps> = ({ onComplete, isComplete
       lowerAnswer.includes(phrase) || phrase.includes(lowerAnswer)
     );
     
-    if ((hasPositiveWords && !hasNegativeWords) || isUpliftingPhrase || lowerAnswer.length > 10) {
+    if ((hasPositiveWords && !hasNegativeWords) || (isUpliftingPhrase && !hasNegativeWords)) {
       setIsSmiling(true);
       setTimeout(() => {
         onComplete();
