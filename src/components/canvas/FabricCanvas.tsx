@@ -48,11 +48,15 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
       backgroundColor: '#fafafa',
       selection: true,
       preserveObjectStacking: true,
-      renderOnAddRemove: false,
+      renderOnAddRemove: true,
       stateful: true,
       fireRightClick: true,
       fireMiddleClick: true,
       stopContextMenu: true,
+      interactive: true,
+      allowTouchScrolling: false,
+      hoverCursor: 'move',
+      moveCursor: 'move',
     });
 
     setFabricCanvas(canvas);
@@ -216,19 +220,29 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
   useEffect(() => {
     if (!fabricCanvas) return;
 
-    fabricCanvas.isDrawingMode = activeTool === 'pen';
-    fabricCanvas.selection = activeTool === 'select';
+    // Always disable drawing mode first
+    fabricCanvas.isDrawingMode = false;
+    fabricCanvas.selection = true;
     
     if (activeTool === 'pen') {
-      // Initialize drawing brush if it doesn't exist
-      if (!fabricCanvas.freeDrawingBrush) {
-        console.log('Initializing drawing brush...');
+      fabricCanvas.isDrawingMode = true;
+      fabricCanvas.selection = false;
+      
+      // Ensure the brush is properly initialized
+      if (fabricCanvas.freeDrawingBrush) {
+        fabricCanvas.freeDrawingBrush.width = 3;
+        fabricCanvas.freeDrawingBrush.color = currentColor;
       }
-      fabricCanvas.freeDrawingBrush.width = 3;
-      fabricCanvas.freeDrawingBrush.color = currentColor;
       console.log('Drawing mode enabled with color:', currentColor);
+    } else if (activeTool === 'select') {
+      fabricCanvas.isDrawingMode = false;
+      fabricCanvas.selection = true;
+    } else {
+      // For shape tools, disable drawing mode but allow selection
+      fabricCanvas.isDrawingMode = false;
+      fabricCanvas.selection = true;
     }
-  }, [activeTool, fabricCanvas]);
+  }, [activeTool, fabricCanvas, currentColor]);
 
   const addRectangle = useCallback(() => {
     if (!fabricCanvas) return;
@@ -377,7 +391,6 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
     fabricCanvas.renderAll();
   }, [fabricCanvas, currentColor]);
 
-  // Enhanced tool handling
   useEffect(() => {
     if (!fabricCanvas) return;
 
@@ -385,24 +398,31 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
       switch (activeTool) {
         case 'rectangle':
           addRectangle();
+          setActiveTool('select'); // Switch back to select after adding
           break;
         case 'circle':
           addCircle();
+          setActiveTool('select');
           break;
         case 'text':
           addText();
+          setActiveTool('select');
           break;
         case 'triangle':
           addTriangle();
+          setActiveTool('select');
           break;
         case 'star':
           addStar();
+          setActiveTool('select');
           break;
         case 'sticky':
           addStickyNote();
+          setActiveTool('select');
           break;
         case 'arrow':
           addArrow();
+          setActiveTool('select');
           break;
       }
     };
@@ -532,8 +552,14 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
       animate={{ opacity: 1 }}
       className="relative flex-1 bg-background overflow-hidden"
     >
-      <div className="absolute inset-0">
-        <canvas ref={canvasRef} className="w-full h-full" />
+      {/* Canvas Container */}
+      <div className="absolute inset-0" onClick={() => canvasRef.current?.focus()}>
+        <canvas 
+          ref={canvasRef} 
+          className="w-full h-full cursor-crosshair" 
+          tabIndex={0}
+          style={{ outline: 'none' }}
+        />
       </div>
       
       {/* Zoom Controls */}
