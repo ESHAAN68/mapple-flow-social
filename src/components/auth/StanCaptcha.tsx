@@ -17,7 +17,10 @@ export const StanCaptcha: React.FC<StanCaptchaProps> = ({ onComplete, isComplete
     'joy', 'fun', 'exciting', 'brilliant', 'marvelous', 'superb',
     'delightful', 'pleasant', 'cheerful', 'magnificent', 'spectacular',
     'incredible', 'outstanding', 'fabulous', 'terrific', 'splendid',
-    'lovely', 'charming', 'sweet', 'kind', 'caring', 'warm', 'cozy'
+    'lovely', 'charming', 'sweet', 'kind', 'caring', 'warm', 'cozy',
+    'cool', 'cute', 'adorable', 'friendly', 'handsome', 'pretty',
+    'smart', 'clever', 'talented', 'special', 'unique', 'funny',
+    'hilarious', 'entertaining', 'enjoyable', 'relaxing', 'peaceful'
   ];
 
   const negativePhrases = [
@@ -42,14 +45,19 @@ export const StanCaptcha: React.FC<StanCaptchaProps> = ({ onComplete, isComplete
       'you are the best', 'you are fantastic', 'you are incredible', 'you are special',
       'you matter', 'you are loved', 'you are important', 'you are valued',
       'keep going', 'stay strong', 'be happy', 'have a great day',
-      'you got this', 'believe in yourself', 'you are enough'
+      'you got this', 'believe in yourself', 'you are enough', 'stan is',
+      'hello stan', 'hi stan', 'hey stan', 'looking good'
     ];
     
+    // Check for exact uplifting phrases or if answer is just positive without negative words
     const isUpliftingPhrase = upliftingPhrases.some(phrase => 
-      lowerAnswer.includes(phrase) || phrase.includes(lowerAnswer)
+      lowerAnswer.includes(phrase)
     );
     
-    if ((hasPositiveWords && !hasNegativeWords) || (isUpliftingPhrase && !hasNegativeWords)) {
+    // More lenient check - if it's reasonably long and has positive words, accept it
+    const isPositiveMessage = lowerAnswer.length >= 3 && hasPositiveWords;
+    
+    if ((isPositiveMessage && !hasNegativeWords) || (isUpliftingPhrase && !hasNegativeWords)) {
       setIsSmiling(true);
       setTimeout(() => {
         onComplete();
