@@ -17,6 +17,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { TextNotificationHandler } from '@/components/notifications/TextNotificationHandler';
+import { SpotifyConnect } from '@/components/music/SpotifyConnect';
+import { SpotifyPlayer } from '@/components/music/SpotifyPlayer';
+import { useSpotify } from '@/hooks/useSpotify';
 import { EnhancedProfileEditor } from '@/components/profile/EnhancedProfileEditor';
 import { 
   Plus, Search, Filter, Grid, List, Star, Clock, Users, MoreHorizontal, Folder, 
