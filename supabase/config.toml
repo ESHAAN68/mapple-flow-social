@@ -9,3 +9,6 @@ max_rows = 1000
 
 [functions.voice-token]
 verify_jwt = true
+
+[functions.spotify-auth]
+verify_jwt = true
