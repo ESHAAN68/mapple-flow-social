@@ -56,6 +56,10 @@ export default function Dashboard() {
   const [newBoard, setNewBoard] = useState({ title: '', description: '' });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+  
+  // Spotify integration
+  const { isConnected: spotifyConnected, spotifyProfile, handleConnectionChange } = useSpotify();
+  
   const [stats, setStats] = useState({
     totalBoards: 0,
     recentActivity: 0,
@@ -449,9 +453,14 @@ export default function Dashboard() {
             </div>
 
             <div className="flex items-center gap-4">
+              <SpotifyConnect 
+                isConnected={spotifyConnected}
+                onConnectionChange={handleConnectionChange}
+                spotifyProfile={spotifyProfile}
+              />
               <NotificationCenter />
               
-              <Button 
+              <Button
                 size="sm" 
                 variant="ghost" 
                 className="hover:bg-secondary/10"
@@ -751,6 +760,9 @@ export default function Dashboard() {
       
       {/* Text Notification Handler */}
       <TextNotificationHandler />
+      
+      {/* Spotify Player - only show if connected */}
+      {spotifyConnected && <SpotifyPlayer />}
     </div>
   );
 }

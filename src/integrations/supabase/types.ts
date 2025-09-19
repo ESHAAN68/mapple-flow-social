@@ -357,6 +357,14 @@ export type Database = {
           pronouns: string | null
           skills: string[] | null
           social_links: Json | null
+          spotify_access_token: string | null
+          spotify_connected_at: string | null
+          spotify_country: string | null
+          spotify_display_name: string | null
+          spotify_email: string | null
+          spotify_premium: boolean | null
+          spotify_refresh_token: string | null
+          spotify_user_id: string | null
           status: string | null
           theme_color: string | null
           timezone: string | null
@@ -380,6 +388,14 @@ export type Database = {
           pronouns?: string | null
           skills?: string[] | null
           social_links?: Json | null
+          spotify_access_token?: string | null
+          spotify_connected_at?: string | null
+          spotify_country?: string | null
+          spotify_display_name?: string | null
+          spotify_email?: string | null
+          spotify_premium?: boolean | null
+          spotify_refresh_token?: string | null
+          spotify_user_id?: string | null
           status?: string | null
           theme_color?: string | null
           timezone?: string | null
@@ -403,6 +419,14 @@ export type Database = {
           pronouns?: string | null
           skills?: string[] | null
           social_links?: Json | null
+          spotify_access_token?: string | null
+          spotify_connected_at?: string | null
+          spotify_country?: string | null
+          spotify_display_name?: string | null
+          spotify_email?: string | null
+          spotify_premium?: boolean | null
+          spotify_refresh_token?: string | null
+          spotify_user_id?: string | null
           status?: string | null
           theme_color?: string | null
           timezone?: string | null
