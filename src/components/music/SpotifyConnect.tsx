@@ -22,28 +22,13 @@ export const SpotifyConnect: React.FC<SpotifyConnectProps> = ({
     try {
       setIsConnecting(true);
       
-      const { data, error } = await supabase.functions.invoke('spotify-auth', {
-        body: { action: 'getAuthUrl' }
-      });
-
-      if (error) throw error;
-
-      // Open Spotify authorization in a popup
-      const popup = window.open(
-        data.authUrl,
-        'spotify-auth',
-        'width=600,height=700,scrollbars=yes,resizable=yes'
-      );
-
-      // Listen for the popup to close (user completed auth)
-      const checkClosed = setInterval(() => {
-        if (popup?.closed) {
-          clearInterval(checkClosed);
-          setIsConnecting(false);
-          // Check if connection was successful
-          checkConnectionStatus();
-        }
-      }, 1000);
+      // Import SpotifyAuth and generate auth URL
+      const { SpotifyAuth } = await import('@/utils/spotifyAuth');
+      const spotifyAuth = SpotifyAuth.getInstance();
+      const authUrl = spotifyAuth.generateAuthUrl();
+      
+      // Redirect to Spotify authorization
+      window.location.href = authUrl;
 
     } catch (error) {
       console.error('Spotify connection error:', error);

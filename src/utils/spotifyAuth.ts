@@ -6,7 +6,7 @@ interface SpotifyConfig {
 
 const SPOTIFY_CONFIG: SpotifyConfig = {
   clientId: import.meta.env.VITE_SPOTIFY_CLIENT_ID || 'your-spotify-client-id',
-  redirectUri: `${window.location.origin}/auth/spotify/callback`,
+  redirectUri: `${window.location.protocol}//${window.location.host}/auth/spotify/callback`,
   scopes: [
     'user-read-playback-state',
     'user-modify-playback-state',
@@ -64,7 +64,7 @@ export class SpotifyAuth {
       response_type: 'code',
       redirect_uri: SPOTIFY_CONFIG.redirectUri,
       scope: SPOTIFY_CONFIG.scopes.join(' '),
-      state: Math.random().toString(36).substring(7),
+      state: 'spotify_auth',
       show_dialog: 'true'
     });
 

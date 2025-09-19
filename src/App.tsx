@@ -15,6 +15,7 @@ import Templates from "./pages/Templates";
 import Analytics from "./pages/Analytics";
 import SecureChat from "./pages/SecureChat";
 import NotFound from "./pages/NotFound";
+import SpotifyCallback from "./pages/SpotifyCallback";
 
 const queryClient = new QueryClient();
 
@@ -90,6 +91,7 @@ const AppRoutes = () => {
           <SecureChat />
         </ProtectedRoute>
       } />
+      <Route path="/auth/spotify/callback" element={<SpotifyCallback />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
