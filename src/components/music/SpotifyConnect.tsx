@@ -22,13 +22,16 @@ export const SpotifyConnect: React.FC<SpotifyConnectProps> = ({
     try {
       setIsConnecting(true);
       
-      // Import SpotifyAuth and generate auth URL
-      const { SpotifyAuth } = await import('@/utils/spotifyAuth');
-      const spotifyAuth = SpotifyAuth.getInstance();
-      const authUrl = spotifyAuth.generateAuthUrl();
+      // Get auth URL from edge function (uses stored SPOTIFY_CLIENT_ID)
+      const { data, error } = await supabase.functions.invoke('spotify-auth', {
+        body: { action: 'getAuthUrl' }
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error('Failed to get authorization URL');
       
       // Redirect to Spotify authorization
-      window.location.href = authUrl;
+      window.location.href = data.authUrl;
 
     } catch (error) {
       console.error('Spotify connection error:', error);
