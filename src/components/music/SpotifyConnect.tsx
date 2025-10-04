@@ -28,10 +28,11 @@ export const SpotifyConnect: React.FC<SpotifyConnectProps> = ({
       });
 
       if (error) throw error;
-      if (!data.success) throw new Error('Failed to get authorization URL');
+      const authUrl = (data as any)?.authUrl;
+      if (!authUrl) throw new Error('Failed to get authorization URL');
       
       // Redirect to Spotify authorization
-      window.location.href = data.authUrl;
+      window.location.href = authUrl;
 
     } catch (error) {
       console.error('Spotify connection error:', error);
