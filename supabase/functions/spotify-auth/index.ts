@@ -98,12 +98,26 @@ serve(async (req) => {
 
       const spotifyProfile = await profileResponse.json();
 
-      // Update user profile with Spotify data
-      const { error: updateError } = await supabaseClient
+      // Store tokens in spotify_credentials table
+      const { error: credError } = await supabaseClient
+        .from('spotify_credentials')
+        .upsert({
+          user_id: user.id,
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id'
+        });
+
+      if (credError) {
+        throw new Error(`Credentials storage error: ${credError.message}`);
+      }
+
+      // Update profiles with non-sensitive metadata
+      const { error: profileError } = await supabaseClient
         .from('profiles')
         .update({
-          spotify_access_token: tokenData.access_token,
-          spotify_refresh_token: tokenData.refresh_token,
           spotify_user_id: spotifyProfile.id,
           spotify_connected_at: new Date().toISOString(),
           spotify_display_name: spotifyProfile.display_name,
@@ -113,8 +127,8 @@ serve(async (req) => {
         })
         .eq('id', user.id);
 
-      if (updateError) {
-        throw new Error(`Profile update error: ${updateError.message}`);
+      if (profileError) {
+        throw new Error(`Profile update error: ${profileError.message}`);
       }
 
       return new Response(JSON.stringify({ 
@@ -128,13 +142,13 @@ serve(async (req) => {
 
     if (action === 'refreshToken') {
       // Refresh the access token
-      const { data: profile } = await supabaseClient
-        .from('profiles')
-        .select('spotify_refresh_token')
-        .eq('id', user.id)
-        .single();
+      const { data: credentials } = await supabaseClient
+        .from('spotify_credentials')
+        .select('refresh_token')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (!profile?.spotify_refresh_token) {
+      if (!credentials?.refresh_token) {
         throw new Error('No refresh token found');
       }
 
@@ -149,7 +163,7 @@ serve(async (req) => {
         },
         body: new URLSearchParams({
           grant_type: 'refresh_token',
-          refresh_token: profile.spotify_refresh_token,
+          refresh_token: credentials.refresh_token,
         }),
       });
 
@@ -159,15 +173,16 @@ serve(async (req) => {
         throw new Error(`Token refresh error: ${tokenData.error_description}`);
       }
 
-      // Update the access token
+      // Update the access token in spotify_credentials
       const { error: updateError } = await supabaseClient
-        .from('profiles')
+        .from('spotify_credentials')
         .update({
-          spotify_access_token: tokenData.access_token,
+          access_token: tokenData.access_token,
           // Only update refresh token if a new one is provided
-          ...(tokenData.refresh_token && { spotify_refresh_token: tokenData.refresh_token }),
+          ...(tokenData.refresh_token && { refresh_token: tokenData.refresh_token }),
+          updated_at: new Date().toISOString(),
         })
-        .eq('id', user.id);
+        .eq('user_id', user.id);
 
       if (updateError) {
         throw new Error(`Token update error: ${updateError.message}`);
@@ -182,12 +197,20 @@ serve(async (req) => {
     }
 
     if (action === 'disconnect') {
-      // Disconnect Spotify
-      const { error: updateError } = await supabaseClient
+      // Delete Spotify credentials
+      const { error: credError } = await supabaseClient
+        .from('spotify_credentials')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (credError) {
+        throw new Error(`Credentials delete error: ${credError.message}`);
+      }
+
+      // Clear Spotify metadata from profiles
+      const { error: profileError } = await supabaseClient
         .from('profiles')
         .update({
-          spotify_access_token: null,
-          spotify_refresh_token: null,
           spotify_user_id: null,
           spotify_connected_at: null,
           spotify_display_name: null,
@@ -197,8 +220,8 @@ serve(async (req) => {
         })
         .eq('id', user.id);
 
-      if (updateError) {
-        throw new Error(`Disconnect error: ${updateError.message}`);
+      if (profileError) {
+        throw new Error(`Profile update error: ${profileError.message}`);
       }
 
       return new Response(JSON.stringify({ success: true }), {

@@ -81,14 +81,18 @@ export const SpotifyPlayer: React.FC = () => {
 
   const loadSpotifyToken = async () => {
     try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('spotify_access_token')
-        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+      const user = (await supabase.auth.getUser()).data.user;
+      if (!user) return;
+
+      // Query spotify_credentials table for access token
+      const { data: credentials } = await supabase
+        .from('spotify_credentials')
+        .select('access_token')
+        .eq('user_id', user.id)
         .maybeSingle();
 
-      if (profile?.spotify_access_token) {
-        setAccessToken(profile.spotify_access_token);
+      if (credentials?.access_token) {
+        setAccessToken(credentials.access_token);
       }
     } catch (error) {
       console.error('Error loading Spotify token:', error);

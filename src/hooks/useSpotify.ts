@@ -24,13 +24,22 @@ export const useSpotify = () => {
   const checkSpotifyConnection = async () => {
     try {
       setIsLoading(true);
+      
+      // Check spotify_credentials table for tokens
+      const { data: credentials } = await supabase
+        .from('spotify_credentials')
+        .select('connected_at')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+
+      // Check profiles for public Spotify metadata
       const { data: profile } = await supabase
         .from('profiles')
         .select('spotify_user_id, spotify_display_name, spotify_premium, spotify_connected_at')
         .eq('id', user?.id)
-        .single();
+        .maybeSingle();
 
-      if (profile?.spotify_user_id) {
+      if (credentials && profile?.spotify_user_id) {
         setIsConnected(true);
         setSpotifyProfile(profile);
       } else {

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from './AuthProvider';
 import { Loader2 } from 'lucide-react';
 import { StanCaptcha } from './StanCaptcha';
+import { z } from 'zod';
+import { toast } from 'sonner';
+
+const signUpSchema = z.object({
+  username: z.string().trim().min(3, 'Username must be at least 3 characters').max(50, 'Username too long').regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, hyphens and underscores'),
+  email: z.string().trim().email('Invalid email address').max(255, 'Email too long'),
+  password: z.string().min(8, 'Password must be at least 8 characters').regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain uppercase, lowercase and number')
+});
 
 interface SignUpFormProps {
   onToggleMode: () => void;
@@ -22,14 +29,28 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onToggleMode }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!captchaCompleted) return;
+    if (!captchaCompleted) {
+      toast.error('Please complete the captcha');
+      return;
+    }
+    
+    // Validate input
+    const validation = signUpSchema.safeParse({ username, email, password });
+    if (!validation.success) {
+      toast.error(validation.error.errors[0].message);
+      return;
+    }
     
     setLoading(true);
     
     try {
       await signUp(email, password, username);
-    } catch (error) {
-      console.error('Sign up error:', error);
+      toast.success('Account created successfully! Please check your email to verify your account.');
+    } catch (error: any) {
+      const message = error.message?.includes('User already registered') 
+        ? 'An account with this email already exists' 
+        : error.message || 'Failed to sign up';
+      toast.error(message);
     } finally {
       setLoading(false);
     }

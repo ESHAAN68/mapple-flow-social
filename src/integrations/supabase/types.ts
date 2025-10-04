@@ -357,13 +357,11 @@ export type Database = {
           pronouns: string | null
           skills: string[] | null
           social_links: Json | null
-          spotify_access_token: string | null
           spotify_connected_at: string | null
           spotify_country: string | null
           spotify_display_name: string | null
           spotify_email: string | null
           spotify_premium: boolean | null
-          spotify_refresh_token: string | null
           spotify_user_id: string | null
           status: string | null
           theme_color: string | null
@@ -388,13 +386,11 @@ export type Database = {
           pronouns?: string | null
           skills?: string[] | null
           social_links?: Json | null
-          spotify_access_token?: string | null
           spotify_connected_at?: string | null
           spotify_country?: string | null
           spotify_display_name?: string | null
           spotify_email?: string | null
           spotify_premium?: boolean | null
-          spotify_refresh_token?: string | null
           spotify_user_id?: string | null
           status?: string | null
           theme_color?: string | null
@@ -419,13 +415,11 @@ export type Database = {
           pronouns?: string | null
           skills?: string[] | null
           social_links?: Json | null
-          spotify_access_token?: string | null
           spotify_connected_at?: string | null
           spotify_country?: string | null
           spotify_display_name?: string | null
           spotify_email?: string | null
           spotify_premium?: boolean | null
-          spotify_refresh_token?: string | null
           spotify_user_id?: string | null
           status?: string | null
           theme_color?: string | null
@@ -433,6 +427,33 @@ export type Database = {
           updated_at?: string | null
           username?: string | null
           website?: string | null
+        }
+        Relationships: []
+      }
+      spotify_credentials: {
+        Row: {
+          access_token: string
+          connected_at: string | null
+          id: string
+          refresh_token: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          connected_at?: string | null
+          id?: string
+          refresh_token: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          connected_at?: string | null
+          id?: string
+          refresh_token?: string
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -639,8 +660,16 @@ export type Database = {
         Args: { board_id: string; user_id: string }
         Returns: boolean
       }
+      is_board_collaborator: {
+        Args: { board_id: string; user_id: string }
+        Returns: boolean
+      }
       is_conversation_participant: {
         Args: { conversation_id: string; user_id: string }
+        Returns: boolean
+      }
+      is_team_member: {
+        Args: { team_id: string; user_id: string }
         Returns: boolean
       }
       start_conversation: {

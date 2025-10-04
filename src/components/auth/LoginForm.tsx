@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from './AuthProvider';
 import { Loader2 } from 'lucide-react';
 import { StanCaptcha } from './StanCaptcha';
+import { z } from 'zod';
+import { toast } from 'sonner';
+
+const loginSchema = z.object({
+  email: z.string().trim().email('Invalid email address').max(255, 'Email too long'),
+  password: z.string().min(8, 'Password must be at least 8 characters')
+});
 
 interface LoginFormProps {
   onToggleMode: () => void;
@@ -21,14 +27,28 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!captchaCompleted) return;
+    if (!captchaCompleted) {
+      toast.error('Please complete the captcha');
+      return;
+    }
+    
+    // Validate input
+    const validation = loginSchema.safeParse({ email, password });
+    if (!validation.success) {
+      toast.error(validation.error.errors[0].message);
+      return;
+    }
     
     setLoading(true);
     
     try {
       await signIn(email, password);
-    } catch (error) {
-      console.error('Login error:', error);
+      toast.success('Successfully signed in!');
+    } catch (error: any) {
+      const message = error.message?.includes('Invalid login credentials') 
+        ? 'Invalid email or password' 
+        : 'Failed to sign in';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
