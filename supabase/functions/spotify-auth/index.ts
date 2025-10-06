@@ -7,6 +7,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Determine redirect URI with fallback domains
+function getRedirectUri(req: Request): string {
+  const origin = req.headers.get('origin');
+  const fallbackDomains = [
+    'https://4e4663fc-f29a-48d1-b739-1ca863cd1ac1.lovableproject.com',
+    'https://mapple-flow-social.lovable.app'
+  ];
+  
+  const baseUrl = origin || fallbackDomains[0];
+  const redirectUri = `${baseUrl}/auth/spotify/callback`;
+  
+  console.log('Spotify redirect URI constructed:', redirectUri, 'from origin:', origin);
+  return redirectUri;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -37,7 +52,7 @@ serve(async (req) => {
     if (action === 'getAuthUrl') {
       // Generate Spotify authorization URL
       const clientId = Deno.env.get('SPOTIFY_CLIENT_ID');
-      const redirectUri = `${req.headers.get('origin')}/auth/spotify/callback`;
+      const redirectUri = getRedirectUri(req);
       
       const scopes = [
         'user-read-private',
@@ -68,7 +83,7 @@ serve(async (req) => {
       // Exchange authorization code for access token
       const clientId = Deno.env.get('SPOTIFY_CLIENT_ID');
       const clientSecret = Deno.env.get('SPOTIFY_CLIENT_SECRET');
-      const redirectUri = `${req.headers.get('origin')}/auth/spotify/callback`;
+      const redirectUri = getRedirectUri(req);
 
       const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
