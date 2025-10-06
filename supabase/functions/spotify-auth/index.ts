@@ -85,6 +85,14 @@ serve(async (req) => {
       const clientSecret = Deno.env.get('SPOTIFY_CLIENT_SECRET');
       const redirectUri = getRedirectUri(req);
 
+      console.log('Exchanging code for token with redirect URI:', redirectUri);
+      console.log('Client ID present:', !!clientId);
+      console.log('Client Secret present:', !!clientSecret);
+
+      if (!clientId || !clientSecret) {
+        throw new Error('Missing Spotify credentials - ensure SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET are configured');
+      }
+
       const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
         headers: {
@@ -101,7 +109,8 @@ serve(async (req) => {
       const tokenData = await tokenResponse.json();
       
       if (!tokenResponse.ok) {
-        throw new Error(`Spotify token error: ${tokenData.error_description}`);
+        console.error('Spotify token error:', tokenData);
+        throw new Error(`Spotify token error: ${tokenData.error_description || tokenData.error || 'Unknown error'}`);
       }
 
       // Get user profile from Spotify
