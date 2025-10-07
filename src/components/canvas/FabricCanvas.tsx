@@ -575,7 +575,7 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="relative flex-1 bg-background overflow-hidden"
+      className="relative flex-1 h-full bg-background overflow-hidden"
     >
       {/* Canvas Container */}
       <div className="absolute inset-0" onClick={() => canvasRef.current?.focus()}>
