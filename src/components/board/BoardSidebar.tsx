@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Rect, Circle, Triangle, IText, Group } from 'fabric';
+import { Rect, Circle, Triangle, IText, Group, Polygon, Path } from 'fabric';
 import { 
   MousePointer2, 
   Square, 
@@ -36,9 +36,13 @@ export const BoardSidebar: React.FC<BoardSidebarProps> = ({ boardId }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const addShape = (toolId: string) => {
-    if (!canvas) return;
+    if (!canvas) {
+      console.warn('Canvas not ready yet');
+      return;
+    }
     
     setActiveTool(toolId as any);
+    console.log('Sidebar tool click:', toolId);
     
     // Immediately create the shape when clicked
     switch (toolId) {
@@ -83,6 +87,39 @@ export const BoardSidebar: React.FC<BoardSidebarProps> = ({ boardId }) => {
         });
         canvas.add(triangle);
         canvas.setActiveObject(triangle);
+        canvas.renderAll();
+        break;
+        
+      case 'star':
+        const starPoints: { x: number; y: number }[] = [];
+        const outerRadius = 60;
+        const innerRadius = 30;
+        const numPoints = 5;
+        for (let i = 0; i < numPoints * 2; i++) {
+          const radius = i % 2 === 0 ? outerRadius : innerRadius;
+          const angle = (i * Math.PI) / numPoints;
+          starPoints.push({ x: Math.cos(angle) * radius, y: Math.sin(angle) * radius });
+        }
+        const star = new Polygon(starPoints, {
+          left: Math.random() * 300 + 100,
+          top: Math.random() * 200 + 100,
+          fill: '#3B82F6',
+        });
+        canvas.add(star);
+        canvas.setActiveObject(star);
+        canvas.renderAll();
+        break;
+        
+      case 'arrow':
+        const arrow = new Path('M 0 0 L 100 0 L 90 -10 M 100 0 L 90 10', {
+          left: Math.random() * 300 + 100,
+          top: Math.random() * 200 + 100,
+          stroke: '#3B82F6',
+          strokeWidth: 3,
+          fill: '',
+        });
+        canvas.add(arrow);
+        canvas.setActiveObject(arrow);
         canvas.renderAll();
         break;
         

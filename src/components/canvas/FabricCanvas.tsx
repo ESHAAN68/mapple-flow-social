@@ -264,6 +264,7 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
 
   const addRectangle = useCallback(() => {
     if (!fabricCanvas) return;
+    console.log('Add rectangle triggered');
     
     const rect = new Rect({
       left: Math.random() * 300 + 100,
@@ -280,6 +281,7 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
     fabricCanvas.add(rect);
     fabricCanvas.setActiveObject(rect);
     fabricCanvas.renderAll();
+    console.log('Rectangle added. Objects:', fabricCanvas.getObjects().length);
   }, [fabricCanvas, currentColor]);
 
   const addCircle = useCallback(() => {
@@ -416,7 +418,7 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
       switch (activeTool) {
         case 'rectangle':
           addRectangle();
-          setActiveTool('select'); // Switch back to select after adding
+          setActiveTool('select');
           break;
         case 'circle':
           addCircle();
@@ -444,6 +446,11 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
           break;
       }
     };
+
+    // If a shape tool was clicked in the sidebar, add it immediately
+    if (['rectangle','circle','text','triangle','star','sticky','arrow'].includes(activeTool as any)) {
+      handleToolAction();
+    }
 
     // Add keyboard shortcuts
     const handleKeyDown = (e: KeyboardEvent) => {
