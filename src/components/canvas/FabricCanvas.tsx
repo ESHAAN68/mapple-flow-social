@@ -45,7 +45,7 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
     const canvas = new FabricCanvas(canvasRef.current, {
       width: window.innerWidth - 320, // Account for sidebar
       height: window.innerHeight - 64, // Account for header
-      backgroundColor: '#fafafa',
+      backgroundColor: '#ffffff',
       selection: true,
       preserveObjectStacking: true,
       renderOnAddRemove: true,
@@ -55,12 +55,20 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
       stopContextMenu: true,
       interactive: true,
       allowTouchScrolling: false,
-      hoverCursor: 'move',
+      hoverCursor: 'default',
       moveCursor: 'move',
     });
 
+    // Initialize the free drawing brush immediately
+    if (canvas.freeDrawingBrush) {
+      canvas.freeDrawingBrush.width = 3;
+      canvas.freeDrawingBrush.color = '#3B82F6';
+    }
+
     setFabricCanvas(canvas);
     setCanvas(canvas);
+    
+    console.log('Canvas initialized:', canvas.getWidth(), 'x', canvas.getHeight());
 
     // Load template data from board
     const loadBoardData = async () => {
@@ -220,27 +228,37 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
   useEffect(() => {
     if (!fabricCanvas) return;
 
-    // Always disable drawing mode first
+    console.log('Tool changed to:', activeTool);
+    
+    // Reset canvas state
     fabricCanvas.isDrawingMode = false;
     fabricCanvas.selection = true;
+    fabricCanvas.defaultCursor = 'default';
     
-    if (activeTool === 'pen') {
+    if (activeTool === 'pen' || activeTool === 'highlighter') {
       fabricCanvas.isDrawingMode = true;
       fabricCanvas.selection = false;
+      fabricCanvas.defaultCursor = 'crosshair';
       
       // Ensure the brush is properly initialized
       if (fabricCanvas.freeDrawingBrush) {
-        fabricCanvas.freeDrawingBrush.width = 3;
+        fabricCanvas.freeDrawingBrush.width = activeTool === 'highlighter' ? 20 : 3;
         fabricCanvas.freeDrawingBrush.color = currentColor;
+        console.log('Drawing brush configured:', {
+          width: fabricCanvas.freeDrawingBrush.width,
+          color: fabricCanvas.freeDrawingBrush.color
+        });
       }
-      console.log('Drawing mode enabled with color:', currentColor);
+      fabricCanvas.renderAll();
     } else if (activeTool === 'select') {
       fabricCanvas.isDrawingMode = false;
       fabricCanvas.selection = true;
+      fabricCanvas.defaultCursor = 'default';
     } else {
       // For shape tools, disable drawing mode but allow selection
       fabricCanvas.isDrawingMode = false;
       fabricCanvas.selection = true;
+      fabricCanvas.defaultCursor = 'default';
     }
   }, [activeTool, fabricCanvas, currentColor]);
 
@@ -556,9 +574,12 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
       <div className="absolute inset-0" onClick={() => canvasRef.current?.focus()}>
         <canvas 
           ref={canvasRef} 
-          className="w-full h-full cursor-crosshair" 
+          className="w-full h-full" 
           tabIndex={0}
-          style={{ outline: 'none' }}
+          style={{ 
+            outline: 'none',
+            display: 'block'
+          }}
         />
       </div>
       

@@ -131,16 +131,13 @@ export const BoardSidebar: React.FC<BoardSidebarProps> = ({ boardId }) => {
         break;
         
       case 'pen':
-        canvas.isDrawingMode = true;
-        if (canvas.freeDrawingBrush) {
-          canvas.freeDrawingBrush.width = 3;
-          canvas.freeDrawingBrush.color = '#3B82F6';
-        }
+      case 'highlighter':
+        // Tool handling is done in FabricCanvas component
+        // Just set the active tool
         break;
         
       case 'select':
-        canvas.isDrawingMode = false;
-        canvas.selection = true;
+        // Tool handling is done in FabricCanvas component
         break;
     }
   };
