@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Rect, Circle, Triangle, IText, Group, Polygon, Path } from 'fabric';
+// (fabric imports removed to prevent duplicate shape creation here)
 import { 
   MousePointer2, 
   Square, 
@@ -35,148 +35,10 @@ export const BoardSidebar: React.FC<BoardSidebarProps> = ({ boardId }) => {
   const { activeTool, setActiveTool, canvas } = useCanvasStore();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const addShape = (toolId: string) => {
-    if (!canvas) {
-      console.warn('Canvas not ready yet');
-      return;
-    }
-    
+  // Set active tool only; object creation is handled inside FabricCanvas to avoid duplicates
+  const handleToolClick = (toolId: string) => {
     setActiveTool(toolId as any);
     console.log('Sidebar tool click:', toolId);
-    
-    // Immediately create the shape when clicked
-    switch (toolId) {
-      case 'rectangle':
-        const rect = new Rect({
-          left: Math.random() * 300 + 100,
-          top: Math.random() * 200 + 100,
-          width: 200,
-          height: 100,
-          fill: '#3B82F6',
-          stroke: '#3B82F6',
-          strokeWidth: 0,
-          rx: 8,
-          ry: 8,
-        });
-        canvas.add(rect);
-        canvas.setActiveObject(rect);
-        canvas.renderAll();
-        break;
-        
-      case 'circle':
-        const circle = new Circle({
-          left: Math.random() * 300 + 100,
-          top: Math.random() * 200 + 100,
-          radius: 60,
-          fill: '#3B82F6',
-          stroke: '#3B82F6',
-          strokeWidth: 0,
-        });
-        canvas.add(circle);
-        canvas.setActiveObject(circle);
-        canvas.renderAll();
-        break;
-        
-      case 'triangle':
-        const triangle = new Triangle({
-          left: Math.random() * 300 + 100,
-          top: Math.random() * 200 + 100,
-          width: 120,
-          height: 120,
-          fill: '#3B82F6',
-        });
-        canvas.add(triangle);
-        canvas.setActiveObject(triangle);
-        canvas.renderAll();
-        break;
-        
-      case 'star':
-        const starPoints: { x: number; y: number }[] = [];
-        const outerRadius = 60;
-        const innerRadius = 30;
-        const numPoints = 5;
-        for (let i = 0; i < numPoints * 2; i++) {
-          const radius = i % 2 === 0 ? outerRadius : innerRadius;
-          const angle = (i * Math.PI) / numPoints;
-          starPoints.push({ x: Math.cos(angle) * radius, y: Math.sin(angle) * radius });
-        }
-        const star = new Polygon(starPoints, {
-          left: Math.random() * 300 + 100,
-          top: Math.random() * 200 + 100,
-          fill: '#3B82F6',
-        });
-        canvas.add(star);
-        canvas.setActiveObject(star);
-        canvas.renderAll();
-        break;
-        
-      case 'arrow':
-        const arrow = new Path('M 0 0 L 100 0 L 90 -10 M 100 0 L 90 10', {
-          left: Math.random() * 300 + 100,
-          top: Math.random() * 200 + 100,
-          stroke: '#3B82F6',
-          strokeWidth: 3,
-          fill: '',
-        });
-        canvas.add(arrow);
-        canvas.setActiveObject(arrow);
-        canvas.renderAll();
-        break;
-        
-      case 'text':
-        const text = new IText('Double click to edit', {
-          left: Math.random() * 300 + 100,
-          top: Math.random() * 200 + 100,
-          fontSize: 24,
-          fill: '#3B82F6',
-          fontFamily: 'Inter, sans-serif',
-          fontWeight: '500',
-        });
-        canvas.add(text);
-        canvas.setActiveObject(text);
-        canvas.renderAll();
-        break;
-        
-      case 'sticky':
-        const group = new Group([
-          new Rect({
-            width: 200,
-            height: 200,
-            fill: '#FEF3C7',
-            stroke: '#F59E0B',
-            strokeWidth: 1,
-            rx: 4,
-            ry: 4,
-          }),
-          new IText('Add your note here...', {
-            fontSize: 16,
-            fill: '#92400E',
-            fontFamily: 'Inter, sans-serif',
-            textAlign: 'center',
-            originX: 'center',
-            originY: 'center',
-            top: 100,
-            left: 100,
-          })
-        ], {
-          left: Math.random() * 300 + 100,
-          top: Math.random() * 200 + 100,
-        });
-        canvas.add(group);
-        canvas.setActiveObject(group);
-        canvas.renderAll();
-        break;
-        
-      case 'pen':
-      case 'highlighter':
-        // Tool handling is done in FabricCanvas component
-        // Just set the active tool
-        break;
-        
-      case 'select':
-        // Tool handling is done in FabricCanvas component
-        break;
-    }
   };
 
   const toolCategories = [
@@ -264,7 +126,7 @@ export const BoardSidebar: React.FC<BoardSidebarProps> = ({ boardId }) => {
                       key={tool.id}
                       variant={activeTool === tool.id ? "default" : "ghost"}
                       className="h-20 flex flex-col items-center justify-center gap-2 relative group"
-                      onClick={() => addShape(tool.id)}
+                      onClick={() => handleToolClick(tool.id)}
                     >
                       <Icon className="h-6 w-6" />
                       <span className="text-xs">{tool.label}</span>

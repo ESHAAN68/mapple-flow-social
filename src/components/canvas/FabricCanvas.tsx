@@ -304,17 +304,22 @@ export const Canvas: React.FC<CanvasProps> = ({ boardId }) => {
   const addText = useCallback(() => {
     if (!fabricCanvas) return;
     
-    const text = new IText('Double click to edit', {
+    const text = new IText('Type here…', {
       left: Math.random() * 300 + 100,
       top: Math.random() * 200 + 100,
       fontSize: 24,
       fill: currentColor,
       fontFamily: 'Inter, sans-serif',
       fontWeight: '500',
+      editable: true,
     });
     
     fabricCanvas.add(text);
     fabricCanvas.setActiveObject(text);
+    // Immediately enter editing mode and select all text
+    // This makes text clearly editable right after creation
+    text.enterEditing();
+    text.selectAll();
     fabricCanvas.renderAll();
   }, [fabricCanvas, currentColor]);
 
