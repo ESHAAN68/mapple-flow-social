@@ -129,9 +129,31 @@ export const ShareModal: React.FC<ShareModalProps> = ({ board, isOpen, onClose }
           });
         }
       } else {
+        // Send email notification
+        try {
+          const inviteeEmail = foundUser.email;
+
+          if (inviteeEmail) {
+            await supabase.functions.invoke('send-board-invitation', {
+              body: {
+                inviteeEmail,
+                inviteeName: foundUser.display_name || foundUser.username,
+                inviterName: user?.email?.split('@')[0] || 'Someone',
+                boardTitle: board.title,
+                boardId: board.id,
+                boardUrl: `${window.location.origin}/board/${board.id}`
+              }
+            });
+            console.log('Email notification sent to:', inviteeEmail);
+          }
+        } catch (emailError) {
+          console.error('Failed to send email notification:', emailError);
+          // Don't fail the invitation if email fails
+        }
+
         toast({
           title: "Invitation sent!",
-          description: `${foundUser.display_name || foundUser.username} has been invited and notified`,
+          description: `${foundUser.display_name || foundUser.username} has been invited via email and in-app notification`,
         });
         setInviteEmail('');
         loadCollaborators();

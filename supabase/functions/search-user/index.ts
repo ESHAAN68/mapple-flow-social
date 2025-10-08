@@ -38,8 +38,17 @@ serve(async (req) => {
 
     if (profileByUsername) {
       console.log('Found user by username:', profileByUsername);
+      
+      // Get email from auth.users for this user
+      const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(profileByUsername.id);
+      
       return new Response(
-        JSON.stringify({ user: profileByUsername }),
+        JSON.stringify({ 
+          user: {
+            ...profileByUsername,
+            email: authUser?.email
+          }
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -67,7 +76,12 @@ serve(async (req) => {
       if (profile) {
         console.log('Found user by email:', profile);
         return new Response(
-          JSON.stringify({ user: profile }),
+          JSON.stringify({ 
+            user: {
+              ...profile,
+              email: userByEmail.email
+            }
+          }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }

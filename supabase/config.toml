@@ -12,3 +12,9 @@ verify_jwt = true
 
 [functions.spotify-auth]
 verify_jwt = true
+
+[functions.search-user]
+verify_jwt = true
+
+[functions.send-board-invitation]
+verify_jwt = true
