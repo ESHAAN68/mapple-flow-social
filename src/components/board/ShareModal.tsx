@@ -76,19 +76,31 @@ export const ShareModal: React.FC<ShareModalProps> = ({ board, isOpen, onClose }
 
     setLoading(true);
     try {
-      // Check if user exists
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, username')
-        .eq('username', inviteEmail.trim())
-        .single();
+      // Search for user by email or username using edge function
+      const { data: searchResult, error: searchError } = await supabase.functions.invoke('search-user', {
+        body: { emailOrUsername: inviteEmail.trim() }
+      });
 
-      if (profileError) {
+      if (searchError || !searchResult?.user) {
         toast({
           title: "User not found",
-          description: "No user found with that email address",
+          description: "No user found with that email or username",
           variant: "destructive"
         });
+        setLoading(false);
+        return;
+      }
+
+      const foundUser = searchResult.user;
+
+      // Check if user is already a collaborator or owner
+      if (foundUser.id === board.owner_id) {
+        toast({
+          title: "Cannot invite",
+          description: "This user is the board owner",
+          variant: "destructive"
+        });
+        setLoading(false);
         return;
       }
 
@@ -97,26 +109,35 @@ export const ShareModal: React.FC<ShareModalProps> = ({ board, isOpen, onClose }
         .from('board_collaborators')
         .insert({
           board_id: board.id,
-          user_id: profiles.id,
+          user_id: foundUser.id,
           invited_by: user?.id,
           permission: 'edit'
         });
 
       if (error) {
-        toast({
-          title: "Failed to invite",
-          description: "User may already be a collaborator",
-          variant: "destructive"
-        });
+        if (error.code === '23505') { // Unique constraint violation
+          toast({
+            title: "Already invited",
+            description: "This user is already a collaborator",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Failed to invite",
+            description: error.message,
+            variant: "destructive"
+          });
+        }
       } else {
         toast({
           title: "Invitation sent!",
-          description: `${inviteEmail} has been added as a collaborator`,
+          description: `${foundUser.display_name || foundUser.username} has been invited and notified`,
         });
         setInviteEmail('');
         loadCollaborators();
       }
     } catch (error) {
+      console.error('Invite error:', error);
       toast({
         title: "Error",
         description: "Failed to send invitation",
