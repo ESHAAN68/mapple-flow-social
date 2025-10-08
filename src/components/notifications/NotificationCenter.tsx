@@ -96,10 +96,13 @@ export const NotificationCenter: React.FC = () => {
           table: 'board_collaborators',
         },
         async (payload) => {
+          console.log('Board collaborator insert detected:', payload);
           const collaboration = payload.new;
           
           // Only notify if invitation is for current user
           if (collaboration.user_id === user.id) {
+            console.log('Invitation is for current user, fetching board and inviter info...');
+            
             // Get board and inviter info
             const { data: boardData } = await supabase
               .from('boards')
@@ -113,6 +116,11 @@ export const NotificationCenter: React.FC = () => {
               .eq('id', collaboration.invited_by)
               .single();
 
+            console.log('Adding board invite notification:', {
+              board: boardData?.title,
+              inviter: inviterProfile?.display_name || inviterProfile?.username
+            });
+
             addNotification({
               type: 'board_invite',
               title: 'Board Invitation',
@@ -121,6 +129,8 @@ export const NotificationCenter: React.FC = () => {
               from_username: inviterProfile?.username || 'Unknown',
               board_id: collaboration.board_id,
             });
+          } else {
+            console.log('Invitation is for another user:', collaboration.user_id);
           }
         }
       )
