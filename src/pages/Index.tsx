@@ -4,6 +4,7 @@ import { NavBar } from "@/components/NavBar";
 import { FeatureCard } from "@/components/FeatureCard";
 import { Button } from "@/components/ui/button";
 import { CursorTrail } from "@/components/CursorTrail";
+import { ChaosWrapper } from "@/components/ChaosWrapper";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -41,10 +42,13 @@ const Index = () => {
       </div>
       
       <div className="relative z-10">
-        <NavBar />
-        
+        <ChaosWrapper delay={0.1}>
+          <NavBar />
+        </ChaosWrapper>
+
         {/* Hero Section */}
-        <section className="relative py-20 px-4">
+        <ChaosWrapper delay={0.2}>
+          <section className="relative py-20 px-4">
           <div className="max-w-6xl mx-auto text-center">
             <div className="inline-flex items-center px-6 py-3 bg-gradient-accent/10 border-2 border-accent/20 text-accent rounded-full text-sm font-poppins font-medium mb-8 shadow-magical animate-bounce-in group hover:scale-105 transition-all duration-300">
               <Sparkles className="w-4 h-4 mr-2 animate-pulse-glow" />
@@ -81,10 +85,12 @@ const Index = () => {
               </Button>
             </div>
           </div>
-        </section>
+          </section>
+        </ChaosWrapper>
 
         {/* Features Grid */}
-        <section className="py-20 px-4">
+        <ChaosWrapper delay={0.3}>
+          <section className="py-20 px-4">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-20 animate-slide-up">
               <h2 className="font-poppins text-5xl font-bold text-foreground mb-6">
@@ -96,53 +102,67 @@ const Index = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <FeatureCard
-                icon={<Palette className="w-8 h-8 text-white" />}
-                title="Visual Collaboration 🎨"
-                description="Infinite canvases with powerful drawing tools, shapes, and templates for any creative project you can imagine"
-                gradient="from-primary/20 to-secondary/20"
-              />
-              
-              <FeatureCard
-                icon={<Users className="w-8 h-8 text-white" />}
-                title="Real-time Teamwork 👥"
-                description="See cursors, edits, and changes instantly. Collaborate like you're in the same magical workspace"
-                gradient="from-secondary/20 to-accent/20"
-              />
-              
-              <FeatureCard
-                icon={<MessageCircle className="w-8 h-8 text-white" />}
-                title="Integrated Chat 💬"
-                description="Voice, video, and text chat built right into your workspace. Never lose context or connection"
-                gradient="from-accent/20 to-primary/20"
-              />
-              
-              <FeatureCard
-                icon={<Globe className="w-8 h-8 text-white" />}
-                title="Social Workspace 🌍"
-                description="Share publicly, discover amazing work, and connect with creators from around the world"
-                gradient="from-primary/15 to-accent/15"
-              />
-              
-              <FeatureCard
-                icon={<Zap className="w-8 h-8 text-white" />}
-                title="AI-Powered ⚡"
-                description="Smart templates, layout suggestions, and content generation to supercharge your creativity"
-                gradient="from-accent/15 to-secondary/15"
-              />
-              
-              <FeatureCard
-                icon={<Shield className="w-8 h-8 text-white" />}
-                title="Enterprise Ready 🛡️"
-                description="Advanced permissions, SSO, compliance features, and enterprise-grade security for teams"
-                gradient="from-secondary/15 to-primary/15"
-              />
+              <ChaosWrapper delay={0.35}>
+                <FeatureCard
+                  icon={<Palette className="w-8 h-8 text-white" />}
+                  title="Visual Collaboration 🎨"
+                  description="Infinite canvases with powerful drawing tools, shapes, and templates for any creative project you can imagine"
+                  gradient="from-primary/20 to-secondary/20"
+                />
+              </ChaosWrapper>
+
+              <ChaosWrapper delay={0.4}>
+                <FeatureCard
+                  icon={<Users className="w-8 h-8 text-white" />}
+                  title="Real-time Teamwork 👥"
+                  description="See cursors, edits, and changes instantly. Collaborate like you're in the same magical workspace"
+                  gradient="from-secondary/20 to-accent/20"
+                />
+              </ChaosWrapper>
+
+              <ChaosWrapper delay={0.45}>
+                <FeatureCard
+                  icon={<MessageCircle className="w-8 h-8 text-white" />}
+                  title="Integrated Chat 💬"
+                  description="Voice, video, and text chat built right into your workspace. Never lose context or connection"
+                  gradient="from-accent/20 to-primary/20"
+                />
+              </ChaosWrapper>
+
+              <ChaosWrapper delay={0.5}>
+                <FeatureCard
+                  icon={<Globe className="w-8 h-8 text-white" />}
+                  title="Social Workspace 🌍"
+                  description="Share publicly, discover amazing work, and connect with creators from around the world"
+                  gradient="from-primary/15 to-accent/15"
+                />
+              </ChaosWrapper>
+
+              <ChaosWrapper delay={0.55}>
+                <FeatureCard
+                  icon={<Zap className="w-8 h-8 text-white" />}
+                  title="AI-Powered ⚡"
+                  description="Smart templates, layout suggestions, and content generation to supercharge your creativity"
+                  gradient="from-accent/15 to-secondary/15"
+                />
+              </ChaosWrapper>
+
+              <ChaosWrapper delay={0.6}>
+                <FeatureCard
+                  icon={<Shield className="w-8 h-8 text-white" />}
+                  title="Enterprise Ready 🛡️"
+                  description="Advanced permissions, SSO, compliance features, and enterprise-grade security for teams"
+                  gradient="from-secondary/15 to-primary/15"
+                />
+              </ChaosWrapper>
             </div>
           </div>
-        </section>
+          </section>
+        </ChaosWrapper>
 
         {/* Magical CTA Section */}
-        <section className="py-20 px-4 bg-gradient-primary relative overflow-hidden">
+        <ChaosWrapper delay={0.4}>
+          <section className="py-20 px-4 bg-gradient-primary relative overflow-hidden">
           <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-primary/20 to-secondary/20"></div>
           
@@ -164,7 +184,8 @@ const Index = () => {
               <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-2 transition-transform duration-300" />
             </Button>
           </div>
-        </section>
+          </section>
+        </ChaosWrapper>
       </div>
     </div>
   );

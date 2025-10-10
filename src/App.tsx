@@ -7,6 +7,8 @@ import { AuthProvider, useAuth } from "@/components/auth/AuthProvider";
 import { CursorTrail } from "@/components/CursorTrail";
 import { DigitalPet } from "@/components/DigitalPet";
 import { AchievementTracker } from "@/components/AchievementTracker";
+import { ChaosButton } from "@/components/ChaosButton";
+import { ChaosWrapper } from "@/components/ChaosWrapper";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -53,54 +55,84 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/" element={<Index />} />
+      <Route path="/" element={
+        <ChaosWrapper delay={0}>
+          <Index />
+        </ChaosWrapper>
+      } />
       <Route path="/auth" element={
         <PublicRoute>
-          <Auth />
+          <ChaosWrapper delay={0.1}>
+            <Auth />
+          </ChaosWrapper>
         </PublicRoute>
       } />
       <Route path="/dashboard" element={
         <ProtectedRoute>
-          <Dashboard />
+          <ChaosWrapper delay={0.2}>
+            <Dashboard />
+          </ChaosWrapper>
         </ProtectedRoute>
       } />
       <Route path="/board/:id" element={
         <ProtectedRoute>
-          <Board />
+          <ChaosWrapper delay={0.3}>
+            <Board />
+          </ChaosWrapper>
         </ProtectedRoute>
       } />
       <Route path="/workspaces" element={
         <ProtectedRoute>
-          <Workspaces />
+          <ChaosWrapper delay={0.2}>
+            <Workspaces />
+          </ChaosWrapper>
         </ProtectedRoute>
       } />
       <Route path="/teams" element={
         <ProtectedRoute>
-          <Teams />
+          <ChaosWrapper delay={0.25}>
+            <Teams />
+          </ChaosWrapper>
         </ProtectedRoute>
       } />
       <Route path="/templates" element={
         <ProtectedRoute>
-          <Templates />
+          <ChaosWrapper delay={0.3}>
+            <Templates />
+          </ChaosWrapper>
         </ProtectedRoute>
       } />
       <Route path="/analytics" element={
         <ProtectedRoute>
-          <Analytics />
+          <ChaosWrapper delay={0.35}>
+            <Analytics />
+          </ChaosWrapper>
         </ProtectedRoute>
       } />
       <Route path="/chat" element={
         <ProtectedRoute>
-          <SecureChat />
+          <ChaosWrapper delay={0.4}>
+            <SecureChat />
+          </ChaosWrapper>
         </ProtectedRoute>
       } />
       <Route path="/map" element={
         <ProtectedRoute>
-          <Map />
+          <ChaosWrapper delay={0.45}>
+            <Map />
+          </ChaosWrapper>
         </ProtectedRoute>
       } />
-      <Route path="/auth/spotify/callback" element={<SpotifyCallback />} />
-      <Route path="*" element={<NotFound />} />
+      <Route path="/auth/spotify/callback" element={
+        <ChaosWrapper delay={0.5}>
+          <SpotifyCallback />
+        </ChaosWrapper>
+      } />
+      <Route path="*" element={
+        <ChaosWrapper delay={0}>
+          <NotFound />
+        </ChaosWrapper>
+      } />
     </Routes>
   );
 };
@@ -112,9 +144,16 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <BrowserRouter>
-          <CursorTrail />
-          <DigitalPet />
-          <AchievementTracker />
+          <ChaosButton />
+          <ChaosWrapper delay={0.1}>
+            <CursorTrail />
+          </ChaosWrapper>
+          <ChaosWrapper delay={0.15}>
+            <DigitalPet />
+          </ChaosWrapper>
+          <ChaosWrapper delay={0.2}>
+            <AchievementTracker />
+          </ChaosWrapper>
           <AppRoutes />
         </BrowserRouter>
       </AuthProvider>
