@@ -7,8 +7,23 @@ interface TrailPoint {
   timestamp: number;
 }
 
-export const CursorTrail = () => {
+type CursorCostume = 'rainbow' | 'hearts' | 'stars' | 'fire' | 'sparkles';
+
+const costumes = {
+  rainbow: (hue: number) => `radial-gradient(circle, hsl(${hue}, 70%, 60%) 0%, transparent 70%)`,
+  hearts: () => '❤️',
+  stars: () => '⭐',
+  fire: () => '🔥',
+  sparkles: () => '✨',
+};
+
+interface CursorTrailProps {
+  costume?: CursorCostume;
+}
+
+export const CursorTrail: React.FC<CursorTrailProps> = ({ costume = 'rainbow' }) => {
   const [trail, setTrail] = useState<TrailPoint[]>([]);
+  const [currentCostume, setCurrentCostume] = useState<CursorCostume>(costume);
 
   useEffect(() => {
     let animationId: number;
@@ -23,7 +38,6 @@ export const CursorTrail = () => {
       
       setTrail(prevTrail => {
         const newTrail = [...prevTrail, newPoint];
-        // Keep only the last 12 points for a nice trail effect
         return newTrail.slice(-12);
       });
     };
@@ -36,23 +50,50 @@ export const CursorTrail = () => {
       animationId = requestAnimationFrame(fadeOldPoints);
     };
 
+    // Change costume randomly
+    const costumeInterval = setInterval(() => {
+      const costumeKeys = Object.keys(costumes) as CursorCostume[];
+      const randomCostume = costumeKeys[Math.floor(Math.random() * costumeKeys.length)];
+      setCurrentCostume(randomCostume);
+    }, 10000);
+
     document.addEventListener('mousemove', handleMouseMove);
     animationId = requestAnimationFrame(fadeOldPoints);
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       cancelAnimationFrame(animationId);
+      clearInterval(costumeInterval);
     };
   }, []);
+
+  const isEmoji = currentCostume !== 'rainbow';
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[9999]">
       {trail.map((point, index) => {
-        const age = (Date.now() - point.timestamp) / 800; // 0 to 1
+        const age = (Date.now() - point.timestamp) / 800;
         const opacity = 1 - age;
         const scale = 1 - age * 0.5;
-        const hue = (index * 30) % 360; // Rainbow effect
+        const hue = (index * 30) % 360;
         
+        if (isEmoji) {
+          return (
+            <div
+              key={point.id}
+              className="absolute text-xl transition-all duration-100 ease-out"
+              style={{
+                left: point.x - 12,
+                top: point.y - 12,
+                opacity: opacity * 0.8,
+                transform: `scale(${scale}) rotate(${index * 15}deg)`,
+              }}
+            >
+              {costumes[currentCostume]()}
+            </div>
+          );
+        }
+
         return (
           <div
             key={point.id}
@@ -62,7 +103,7 @@ export const CursorTrail = () => {
               top: point.y - 6,
               opacity: opacity * 0.6,
               transform: `scale(${scale})`,
-              background: `radial-gradient(circle, hsl(${hue}, 70%, 60%) 0%, transparent 70%)`,
+              background: costumes.rainbow(hue),
               filter: 'blur(0.5px)',
             }}
           />
