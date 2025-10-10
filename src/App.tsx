@@ -16,6 +16,7 @@ import Analytics from "./pages/Analytics";
 import SecureChat from "./pages/SecureChat";
 import NotFound from "./pages/NotFound";
 import SpotifyCallback from "./pages/SpotifyCallback";
+import Map from "./pages/Map";
 
 const queryClient = new QueryClient();
 
@@ -89,6 +90,11 @@ const AppRoutes = () => {
       <Route path="/chat" element={
         <ProtectedRoute>
           <SecureChat />
+        </ProtectedRoute>
+      } />
+      <Route path="/map" element={
+        <ProtectedRoute>
+          <Map />
         </ProtectedRoute>
       } />
       <Route path="/auth/spotify/callback" element={<SpotifyCallback />} />
