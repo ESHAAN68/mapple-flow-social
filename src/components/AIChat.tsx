@@ -5,10 +5,12 @@ import { MessageSquare, X, Send, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ReportForm } from './chat/ReportForm';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  showReportForm?: 'error' | 'suggestion';
 }
 
 export const AIChat = () => {
@@ -16,6 +18,7 @@ export const AIChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showReportForm, setShowReportForm] = useState<'error' | 'suggestion' | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -79,11 +82,30 @@ export const AIChat = () => {
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) {
               assistantContent += content;
+              
+              // Check for special form triggers
+              let reportType: 'error' | 'suggestion' | undefined;
+              if (assistantContent.includes('[SHOW_ERROR_FORM]')) {
+                reportType = 'error';
+                assistantContent = assistantContent.replace('[SHOW_ERROR_FORM]', '');
+              } else if (assistantContent.includes('[SHOW_SUGGESTION_FORM]')) {
+                reportType = 'suggestion';
+                assistantContent = assistantContent.replace('[SHOW_SUGGESTION_FORM]', '');
+              }
+              
               setMessages(prev => {
                 const newMsgs = [...prev];
-                newMsgs[newMsgs.length - 1] = { role: 'assistant', content: assistantContent };
+                newMsgs[newMsgs.length - 1] = { 
+                  role: 'assistant', 
+                  content: assistantContent,
+                  showReportForm: reportType
+                };
                 return newMsgs;
               });
+              
+              if (reportType) {
+                setShowReportForm(reportType);
+              }
             }
           } catch {
             textBuffer = line + '\n' + textBuffer;
@@ -143,19 +165,29 @@ export const AIChat = () => {
                     </div>
                   )}
                   {messages.map((msg, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
+                    <div key={idx} className="space-y-2">
                       <div
-                        className={`rounded-lg px-4 py-2 max-w-[80%] ${
-                          msg.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
-                        }`}
+                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                       >
-                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        <div
+                          className={`rounded-lg px-4 py-2 max-w-[80%] ${
+                            msg.role === 'user'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted'
+                          }`}
+                        >
+                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        </div>
                       </div>
+                      
+                      {msg.showReportForm && showReportForm === msg.showReportForm && (
+                        <div className="ml-2">
+                          <ReportForm
+                            reportType={msg.showReportForm}
+                            onClose={() => setShowReportForm(null)}
+                          />
+                        </div>
+                      )}
                     </div>
                   ))}
                   {isLoading && (
