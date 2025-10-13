@@ -7,7 +7,6 @@ import { AuthProvider, useAuth } from "@/components/auth/AuthProvider";
 import { CursorTrail } from "@/components/CursorTrail";
 import { DigitalPet } from "@/components/DigitalPet";
 import { AchievementTracker } from "@/components/AchievementTracker";
-import { ChaosButton } from "@/components/ChaosButton";
 import { ChaosWrapper } from "@/components/ChaosWrapper";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -144,7 +143,6 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <BrowserRouter>
-          <ChaosButton />
           <ChaosWrapper delay={0.1}>
             <CursorTrail />
           </ChaosWrapper>
