@@ -8,6 +8,7 @@ import { CursorTrail } from "@/components/CursorTrail";
 import { DigitalPet } from "@/components/DigitalPet";
 import { AchievementTracker } from "@/components/AchievementTracker";
 import { ChaosWrapper } from "@/components/ChaosWrapper";
+import { AIChat } from "@/components/AIChat";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -152,6 +153,7 @@ const App = () => (
           <ChaosWrapper delay={0.2}>
             <AchievementTracker />
           </ChaosWrapper>
+          <AIChat />
           <AppRoutes />
         </BrowserRouter>
       </AuthProvider>
