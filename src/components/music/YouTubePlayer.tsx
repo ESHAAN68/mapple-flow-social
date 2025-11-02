@@ -132,7 +132,7 @@ export const YouTubePlayer: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="fixed bottom-6 right-6 z-30"
+        className="fixed bottom-24 right-6 z-50"
       >
         <Button
           onClick={() => setIsExpanded(true)}
@@ -151,7 +151,7 @@ export const YouTubePlayer: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        className={`fixed bottom-6 right-6 z-30 ${
+        className={`fixed bottom-6 right-6 z-50 ${
           isMinimized ? 'w-80' : isExpanded ? 'w-[600px]' : 'w-96'
         }`}
       >
