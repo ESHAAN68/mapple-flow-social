@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useChatStore } from '@/store/chatStore';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
-import { MessageCircle, Send, X } from 'lucide-react';
+import { MessageCircle, Send, X, GripHorizontal } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface ChatPanelProps {
@@ -16,14 +16,15 @@ interface ChatPanelProps {
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({ boardId }) => {
   const { user } = useAuth();
-  const { 
-    messages, 
-    isOpen, 
-    newMessage, 
-    setMessages, 
-    addMessage, 
-    setIsOpen, 
-    setNewMessage 
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const {
+    messages,
+    isOpen,
+    newMessage,
+    setMessages,
+    addMessage,
+    setIsOpen,
+    setNewMessage
   } = useChatStore();
 
   useEffect(() => {
@@ -147,15 +148,33 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ boardId }) => {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ x: 350, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 350, opacity: 0 }}
+            drag
+            dragMomentum={false}
+            onDragEnd={(event, info) => {
+              setPosition({
+                x: position.x + info.offset.x,
+                y: position.y + info.offset.y,
+              });
+            }}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed right-0 bottom-0 h-[70vh] w-96 bg-card/95 backdrop-blur-md border-l border-t border-border rounded-tl-lg z-40 flex flex-col shadow-2xl"
+            style={{
+              x: position.x,
+              y: position.y,
+            }}
+            className="fixed h-[70vh] w-96 bg-card/95 backdrop-blur-md border border-border rounded-lg z-40 flex flex-col shadow-2xl"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <h3 className="font-semibold">Chat</h3>
+            {/* Header - Draggable */}
+            <div
+              className="flex items-center justify-between p-4 border-b border-border cursor-grab active:cursor-grabbing"
+              style={{ touchAction: 'none' }}
+            >
+              <div className="flex items-center gap-2">
+                <GripHorizontal className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-semibold">Chat</h3>
+              </div>
               <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
                 <X className="h-4 w-4" />
               </Button>
