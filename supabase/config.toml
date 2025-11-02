@@ -21,3 +21,6 @@ verify_jwt = true
 
 [functions.send-admin-report]
 verify_jwt = false
+
+[functions.youtube-search]
+verify_jwt = true

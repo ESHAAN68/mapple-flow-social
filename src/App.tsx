@@ -9,6 +9,8 @@ import { DigitalPet } from "@/components/DigitalPet";
 import { AchievementTracker } from "@/components/AchievementTracker";
 import { ChaosWrapper } from "@/components/ChaosWrapper";
 import { AIChat } from "@/components/AIChat";
+import { MoodSelector } from "@/components/MoodSelector";
+import { YouTubePlayer } from "@/components/music/YouTubePlayer";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -153,6 +155,8 @@ const App = () => (
           <ChaosWrapper delay={0.2}>
             <AchievementTracker />
           </ChaosWrapper>
+          <MoodSelector />
+          <YouTubePlayer />
           <AIChat />
           <AppRoutes />
         </BrowserRouter>

@@ -62,6 +62,31 @@ All colors MUST be HSL.
     /* Animation Variables */
     --transition-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
     --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Mood Theme Variables */
+    --mood-happy-primary: 45 100% 55%;
+    --mood-happy-secondary: 38 92% 50%;
+    --mood-happy-accent: 50 98% 64%;
+    
+    --mood-sad-primary: 220 70% 50%;
+    --mood-sad-secondary: 240 65% 55%;
+    --mood-sad-accent: 200 75% 60%;
+    
+    --mood-energetic-primary: 10 90% 60%;
+    --mood-energetic-secondary: 25 95% 55%;
+    --mood-energetic-accent: 0 100% 65%;
+    
+    --mood-relaxed-primary: 150 60% 45%;
+    --mood-relaxed-secondary: 165 55% 50%;
+    --mood-relaxed-accent: 140 65% 55%;
+    
+    --mood-focused-primary: 210 80% 45%;
+    --mood-focused-secondary: 220 75% 50%;
+    --mood-focused-accent: 200 85% 55%;
+    
+    --mood-creative-primary: 280 75% 60%;
+    --mood-creative-secondary: 320 70% 65%;
+    --mood-creative-accent: 340 80% 70%;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -123,6 +148,43 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+  
+  /* Mood-based theme overrides */
+  [data-mood="happy"] {
+    --primary: var(--mood-happy-primary);
+    --secondary: var(--mood-happy-secondary);
+    --accent: var(--mood-happy-accent);
+  }
+  
+  [data-mood="sad"] {
+    --primary: var(--mood-sad-primary);
+    --secondary: var(--mood-sad-secondary);
+    --accent: var(--mood-sad-accent);
+  }
+  
+  [data-mood="energetic"] {
+    --primary: var(--mood-energetic-primary);
+    --secondary: var(--mood-energetic-secondary);
+    --accent: var(--mood-energetic-accent);
+  }
+  
+  [data-mood="relaxed"] {
+    --primary: var(--mood-relaxed-primary);
+    --secondary: var(--mood-relaxed-secondary);
+    --accent: var(--mood-relaxed-accent);
+  }
+  
+  [data-mood="focused"] {
+    --primary: var(--mood-focused-primary);
+    --secondary: var(--mood-focused-secondary);
+    --accent: var(--mood-focused-accent);
+  }
+  
+  [data-mood="creative"] {
+    --primary: var(--mood-creative-primary);
+    --secondary: var(--mood-creative-secondary);
+    --accent: var(--mood-creative-accent);
   }
 }
 

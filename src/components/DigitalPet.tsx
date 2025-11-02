@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useMoodStore, moodEmojis } from '@/store/moodStore';
 
 type PetMood = 'sleeping' | 'bored' | 'playing' | 'vibing';
 
@@ -17,19 +18,49 @@ const petThoughts = {
   vibing: 'living my best life',
 };
 
+// Mood-based pet thoughts
+const moodBasedThoughts: Record<string, string> = {
+  happy: 'you seem happy! 😊',
+  sad: 'sending hugs 🤗',
+  energetic: 'let\'s gooo! ⚡',
+  relaxed: 'chilling with you 😌',
+  focused: 'you got this! 🎯',
+  creative: 'feeling artsy! 🎨',
+};
+
 export const DigitalPet: React.FC = () => {
   const [mood, setMood] = useState<PetMood>('bored');
   const [showThought, setShowThought] = useState(false);
   const [position, setPosition] = useState({ x: 20, y: 20 });
+  const { currentMood } = useMoodStore();
+  const [thoughtText, setThoughtText] = useState('');
+
+  // React to user's mood
+  useEffect(() => {
+    if (currentMood) {
+      // Pet mirrors user mood
+      if (currentMood === 'happy') setMood('vibing');
+      else if (currentMood === 'energetic') setMood('playing');
+      else if (currentMood === 'sad') setMood('sleeping');
+      else setMood('bored');
+      
+      setThoughtText(moodBasedThoughts[currentMood] || petThoughts[mood]);
+      setShowThought(true);
+      setTimeout(() => setShowThought(false), 3000);
+    }
+  }, [currentMood]);
 
   useEffect(() => {
     // Random mood changes
     const moodInterval = setInterval(() => {
-      const moods: PetMood[] = ['sleeping', 'bored', 'playing', 'vibing'];
-      const randomMood = moods[Math.floor(Math.random() * moods.length)];
-      setMood(randomMood);
-      setShowThought(true);
-      setTimeout(() => setShowThought(false), 3000);
+      if (!currentMood) {
+        const moods: PetMood[] = ['sleeping', 'bored', 'playing', 'vibing'];
+        const randomMood = moods[Math.floor(Math.random() * moods.length)];
+        setMood(randomMood);
+        setThoughtText(petThoughts[randomMood]);
+        setShowThought(true);
+        setTimeout(() => setShowThought(false), 3000);
+      }
     }, 8000);
 
     // Random position changes (sometimes)
@@ -66,6 +97,7 @@ export const DigitalPet: React.FC = () => {
       }}
       onClick={() => {
         setMood('vibing');
+        setThoughtText(currentMood ? moodBasedThoughts[currentMood] : 'you clicked me!');
         setShowThought(true);
         setTimeout(() => setShowThought(false), 2000);
       }}
@@ -87,7 +119,7 @@ export const DigitalPet: React.FC = () => {
             >
               <div className="bg-background/95 backdrop-blur-sm border border-primary/20 rounded-2xl px-4 py-2 shadow-lg">
                 <p className="text-sm font-medium text-foreground">
-                  {petThoughts[mood]}
+                  {thoughtText || petThoughts[mood]}
                 </p>
               </div>
               {/* Bubble tail */}
