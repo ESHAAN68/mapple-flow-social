@@ -21,6 +21,7 @@ export const YouTubePlayer: React.FC = () => {
   const [searchResults, setSearchResults] = useState<YouTubeVideo[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
   const playerRef = useRef<any>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
   
@@ -63,6 +64,10 @@ export const YouTubePlayer: React.FC = () => {
           modestbranding: 1,
         },
         events: {
+          onReady: () => {
+            console.log('YouTube player ready');
+            setIsPlayerReady(true);
+          },
           onStateChange: (event: any) => {
             if (event.data === window.YT.PlayerState.PLAYING) {
               setIsPlaying(true);
@@ -74,10 +79,15 @@ export const YouTubePlayer: React.FC = () => {
           },
         },
       });
-    } else if (currentVideo && playerRef.current) {
-      playerRef.current.loadVideoById(currentVideo.id);
+    } else if (currentVideo && playerRef.current && isPlayerReady) {
+      try {
+        playerRef.current.loadVideoById(currentVideo.id);
+        setIsPlaying(true);
+      } catch (error) {
+        console.error('Error loading video:', error);
+      }
     }
-  }, [currentVideo]);
+  }, [currentVideo, isPlayerReady]);
 
   // Handle volume changes
   useEffect(() => {
@@ -118,11 +128,15 @@ export const YouTubePlayer: React.FC = () => {
   };
 
   const togglePlayPause = () => {
-    if (playerRef.current) {
-      if (isPlaying) {
-        playerRef.current.pauseVideo();
-      } else {
-        playerRef.current.playVideo();
+    if (playerRef.current && isPlayerReady) {
+      try {
+        if (isPlaying) {
+          playerRef.current.pauseVideo();
+        } else {
+          playerRef.current.playVideo();
+        }
+      } catch (error) {
+        console.error('Error toggling playback:', error);
       }
     }
   };
@@ -253,10 +267,12 @@ export const YouTubePlayer: React.FC = () => {
             </ScrollArea>
           ) : currentVideo ? (
             <>
-              {/* Video Player - Always rendered but hidden when minimized */}
+              {/* Video Player - Always rendered but moved off-screen when minimized */}
               <div 
                 ref={playerContainerRef} 
-                className={`relative bg-black ${isMinimized ? 'hidden' : ''}`}
+                className={`relative bg-black transition-all ${
+                  isMinimized ? 'h-0 overflow-hidden' : 'h-56'
+                }`}
               >
                 <div id="youtube-player" className="w-full h-56" />
               </div>
