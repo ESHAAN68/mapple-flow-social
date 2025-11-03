@@ -11,6 +11,7 @@ import { ChaosWrapper } from "@/components/ChaosWrapper";
 import { AIChat } from "@/components/AIChat";
 import { MoodSelector } from "@/components/MoodSelector";
 import { YouTubePlayer } from "@/components/music/YouTubePlayer";
+import { UpdateAnnouncement } from "@/components/UpdateAnnouncement";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -158,6 +159,7 @@ const App = () => (
           <MoodSelector />
           <YouTubePlayer />
           <AIChat />
+          <UpdateAnnouncement />
           <AppRoutes />
         </BrowserRouter>
       </AuthProvider>
