@@ -296,6 +296,9 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
 
     setIncomingCall(null);
     setCallStatus('connecting');
+
+    // Open the call UI for the receiver
+    onCallToggle();
     
     // Notify caller that call was accepted
     channelRef.current?.send({
