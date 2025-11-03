@@ -39,7 +39,7 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'ringing' | 'connected'>('idle');
+  const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'ringing' | 'connecting' | 'connected'>('idle');
   const [incomingCall, setIncomingCall] = useState<any>(null);
   const [showChat, setShowChat] = useState(false);
   const [callMessages, setCallMessages] = useState<any[]>([]);
@@ -177,9 +177,13 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
       })
       .on('broadcast', { event: 'call-accepted' }, (payload) => {
         console.log('Call accepted:', payload);
-        if (payload.payload.from_user_id === user?.id) {
-          setCallStatus('connected');
-          initializeCall(false); // false = not the initiator
+        // The caller receives this when their call is accepted
+        if (payload.payload.to_user_id === user?.id) {
+          setCallStatus('connecting');
+          toast({
+            title: "Call accepted",
+            description: "Connecting...",
+          });
         }
       })
       .on('broadcast', { event: 'call-declined' }, (payload) => {
@@ -291,7 +295,7 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
     }
 
     setIncomingCall(null);
-    setCallStatus('connected');
+    setCallStatus('connecting');
     
     // Notify caller that call was accepted
     channelRef.current?.send({
@@ -304,7 +308,7 @@ export const WebRTCCall: React.FC<WebRTCCallProps> = ({
       }
     });
 
-    // Initialize call as receiver
+    // Initialize call as receiver (will wait for offer)
     await initializeCall(false);
   };
 
