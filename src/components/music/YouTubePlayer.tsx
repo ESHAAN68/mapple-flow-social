@@ -190,150 +190,180 @@ export const YouTubePlayer: React.FC = () => {
             </div>
           </div>
 
-          {!isMinimized && (
-            <>
-              {/* Search Section */}
-              <div className="p-4 bg-background border-b">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Search for music..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    className="flex-1"
-                  />
-                  <Button onClick={handleSearch} disabled={isSearching}>
-                    <Search className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+          {/* Search Section */}
+          <div className={`p-4 bg-background border-b ${isMinimized ? 'hidden' : ''}`}>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Search for music..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                className="flex-1"
+              />
+              <Button onClick={handleSearch} disabled={isSearching}>
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
 
-              {/* Player or Search Results */}
-              {isExpanded && searchResults.length > 0 ? (
-                <ScrollArea className="h-96 p-4">
-                  <div className="space-y-2">
-                    {searchResults.map((video) => (
-                      <motion.div
-                        key={video.id}
-                        whileHover={{ scale: 1.02 }}
-                        className="flex gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer"
-                      >
-                        <img
-                          src={video.thumbnail}
-                          alt={video.title}
-                          className="w-32 h-20 object-cover rounded"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm line-clamp-2">{video.title}</h4>
-                          <p className="text-xs text-muted-foreground mt-1">{video.channel}</p>
-                          <div className="flex gap-2 mt-2">
-                            <Button
-                              size="sm"
-                              onClick={() => handlePlayVideo(video)}
-                              className="h-7"
-                            >
-                              <Play className="h-3 w-3 mr-1" />
-                              Play
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                addToQueue(video);
-                                toast.success('Added to queue');
-                              }}
-                              className="h-7"
-                            >
-                              <Plus className="h-3 w-3 mr-1" />
-                              Queue
-                            </Button>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              ) : currentVideo ? (
-                <>
-                  {/* Video Player */}
-                  <div ref={playerContainerRef} className="relative bg-black">
-                    <div id="youtube-player" className="w-full h-56" />
-                  </div>
-
-                  {/* Controls */}
-                  <div className="p-4 bg-background">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex-1 min-w-0 mr-3">
-                        <h4 className="font-medium text-sm line-clamp-1">{currentVideo.title}</h4>
-                        <p className="text-xs text-muted-foreground">{currentVideo.channel}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button size="icon" variant="ghost" onClick={togglePlayPause}>
-                          {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          {/* Player or Search Results */}
+          {isExpanded && searchResults.length > 0 ? (
+            <ScrollArea className="h-96 p-4">
+              <div className="space-y-2">
+                {searchResults.map((video) => (
+                  <motion.div
+                    key={video.id}
+                    whileHover={{ scale: 1.02 }}
+                    className="flex gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer"
+                  >
+                    <img
+                      src={video.thumbnail}
+                      alt={video.title}
+                      className="w-32 h-20 object-cover rounded"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm line-clamp-2">{video.title}</h4>
+                      <p className="text-xs text-muted-foreground mt-1">{video.channel}</p>
+                      <div className="flex gap-2 mt-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handlePlayVideo(video)}
+                          className="h-7"
+                        >
+                          <Play className="h-3 w-3 mr-1" />
+                          Play
                         </Button>
                         <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={playNext}
-                          disabled={queue.length === 0}
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            addToQueue(video);
+                            toast.success('Added to queue');
+                          }}
+                          className="h-7"
                         >
-                          <SkipForward className="h-4 w-4" />
+                          <Plus className="h-3 w-3 mr-1" />
+                          Queue
                         </Button>
                       </div>
                     </div>
+                  </motion.div>
+                ))}
+              </div>
+            </ScrollArea>
+          ) : currentVideo ? (
+            <>
+              {/* Video Player - Always rendered but hidden when minimized */}
+              <div 
+                ref={playerContainerRef} 
+                className={`relative bg-black ${isMinimized ? 'hidden' : ''}`}
+              >
+                <div id="youtube-player" className="w-full h-56" />
+              </div>
 
-                    {/* Volume */}
-                    <div className="flex items-center gap-2">
-                      <Volume2 className="h-4 w-4 text-muted-foreground" />
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={volume}
-                        onChange={(e) => setVolume(Number(e.target.value))}
-                        className="flex-1"
-                      />
+              {/* Mini Player View */}
+              {isMinimized && (
+                <div className="p-3 bg-background">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={currentVideo.thumbnail}
+                      alt={currentVideo.title}
+                      className="w-16 h-12 object-cover rounded"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-xs line-clamp-1">{currentVideo.title}</h4>
+                      <p className="text-xs text-muted-foreground">{currentVideo.channel}</p>
                     </div>
-
-                    {/* Queue */}
-                    {queue.length > 0 && (
-                      <div className="mt-3 pt-3 border-t">
-                        <p className="text-xs text-muted-foreground mb-2">
-                          Up next ({queue.length})
-                        </p>
-                        <div className="space-y-1 max-h-32 overflow-y-auto">
-                          {queue.slice(0, 3).map((video) => (
-                            <div
-                              key={video.id}
-                              className="flex items-center gap-2 text-xs p-1 hover:bg-muted rounded"
-                            >
-                              <img
-                                src={video.thumbnail}
-                                alt={video.title}
-                                className="w-12 h-8 object-cover rounded"
-                              />
-                              <span className="flex-1 line-clamp-1">{video.title}</span>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6"
-                                onClick={() => removeFromQueue(video.id)}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-1">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={togglePlayPause}>
+                        {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        onClick={playNext}
+                        disabled={queue.length === 0}
+                      >
+                        <SkipForward className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
-                </>
-              ) : (
-                <div className="h-64 flex items-center justify-center text-muted-foreground">
-                  <p className="text-sm">Search for music to get started</p>
                 </div>
               )}
+
+              {/* Full Controls */}
+              <div className={`p-4 bg-background ${isMinimized ? 'hidden' : ''}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex-1 min-w-0 mr-3">
+                    <h4 className="font-medium text-sm line-clamp-1">{currentVideo.title}</h4>
+                    <p className="text-xs text-muted-foreground">{currentVideo.channel}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="icon" variant="ghost" onClick={togglePlayPause}>
+                      {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={playNext}
+                      disabled={queue.length === 0}
+                    >
+                      <SkipForward className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Volume */}
+                <div className="flex items-center gap-2">
+                  <Volume2 className="h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={volume}
+                    onChange={(e) => setVolume(Number(e.target.value))}
+                    className="flex-1"
+                  />
+                </div>
+
+                {/* Queue */}
+                {queue.length > 0 && (
+                  <div className="mt-3 pt-3 border-t">
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Up next ({queue.length})
+                    </p>
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                      {queue.slice(0, 3).map((video) => (
+                        <div
+                          key={video.id}
+                          className="flex items-center gap-2 text-xs p-1 hover:bg-muted rounded"
+                        >
+                          <img
+                            src={video.thumbnail}
+                            alt={video.title}
+                            className="w-12 h-8 object-cover rounded"
+                          />
+                          <span className="flex-1 line-clamp-1">{video.title}</span>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            onClick={() => removeFromQueue(video.id)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </>
+          ) : (
+            <div className="h-64 flex items-center justify-center text-muted-foreground">
+              <p className="text-sm">Search for music to get started</p>
+            </div>
           )}
         </div>
       </motion.div>
