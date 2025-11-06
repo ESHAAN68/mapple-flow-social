@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from './AuthProvider';
+import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { StanCaptcha } from './StanCaptcha';
 import { z } from 'zod';
@@ -26,6 +27,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onToggleMode }) => {
   const [loading, setLoading] = useState(false);
   const [captchaCompleted, setCaptchaCompleted] = useState(false);
   const { signUp, signInWithGoogle } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +63,10 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onToggleMode }) => {
     
     setLoading(true);
     try {
-      await signInWithGoogle();
+      const { error } = await signInWithGoogle();
+      if (!error) {
+        navigate('/dashboard');
+      }
     } catch (error) {
       console.error('Google sign in error:', error);
     } finally {

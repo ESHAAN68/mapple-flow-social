@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from './AuthProvider';
+import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { StanCaptcha } from './StanCaptcha';
 import { z } from 'zod';
@@ -24,6 +25,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
   const [loading, setLoading] = useState(false);
   const [captchaCompleted, setCaptchaCompleted] = useState(false);
   const { signIn, signInWithGoogle } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,8 +44,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
     setLoading(true);
     
     try {
-      await signIn(email, password);
+      const { error } = await signIn(email, password);
+      if (error) throw error;
+      
       toast.success('Successfully signed in!');
+      navigate('/dashboard');
     } catch (error: any) {
       const message = error.message?.includes('Invalid login credentials') 
         ? 'Invalid email or password' 
@@ -59,7 +64,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
     
     setLoading(true);
     try {
-      await signInWithGoogle();
+      const { error } = await signInWithGoogle();
+      if (!error) {
+        navigate('/dashboard');
+      }
     } catch (error) {
       console.error('Google sign in error:', error);
     } finally {
