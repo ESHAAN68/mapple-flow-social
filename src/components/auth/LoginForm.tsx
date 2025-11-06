@@ -27,6 +27,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
   const { signIn, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
 
+  const handleForgotPassword = () => {
+    navigate('/forgot-password');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!captchaCompleted) {
@@ -102,7 +106,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Password</Label>
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="text-sm text-purple-600 hover:underline"
+              >
+                Forgot password?
+              </button>
+            </div>
             <Input
               id="password"
               type="password"

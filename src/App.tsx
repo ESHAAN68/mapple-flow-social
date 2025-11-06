@@ -14,6 +14,7 @@ import { YouTubePlayer } from "@/components/music/YouTubePlayer";
 import { UpdateAnnouncement } from "@/components/UpdateAnnouncement";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import Board from "./pages/Board";
 import Workspaces from "./pages/Workspaces";
@@ -69,6 +70,11 @@ const AppRoutes = () => {
             <Auth />
           </ChaosWrapper>
         </PublicRoute>
+      } />
+      <Route path="/forgot-password" element={
+        <ChaosWrapper delay={0.1}>
+          <ForgotPassword />
+        </ChaosWrapper>
       } />
       <Route path="/dashboard" element={
         <ProtectedRoute>
