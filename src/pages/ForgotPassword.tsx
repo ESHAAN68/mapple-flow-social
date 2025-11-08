@@ -31,31 +31,52 @@ const ForgotPassword = () => {
   const [emailSent, setEmailSent] = useState(false);
   const [searchParams] = useSearchParams();
   const [isResetting, setIsResetting] = useState(false);
+  const [checking, setChecking] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if this is a password reset by looking at hash fragments and query params
-    const checkResetMode = async () => {
-      // Check URL for type=recovery in query params or hash
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const typeFromHash = hashParams.get('type');
-      const typeFromQuery = searchParams.get('type');
-      
-      if (typeFromHash === 'recovery' || typeFromQuery === 'recovery') {
-        setIsResetting(true);
-        console.log('Password reset mode activated');
-        return;
-      }
+    let mounted = true;
 
-      // Also check if user has an active session (they clicked the email link)
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
+    // Parse hash and query to detect recovery tokens
+    const hash = window.location.hash.startsWith('#')
+      ? window.location.hash.slice(1)
+      : window.location.hash;
+    const hashParams = new URLSearchParams(hash);
+    const typeFromHash = hashParams.get('type');
+    const accessToken = hashParams.get('access_token');
+    const typeFromQuery = searchParams.get('type');
+
+    if (typeFromHash === 'recovery' || typeFromQuery === 'recovery' || accessToken) {
+      setIsResetting(true);
+    }
+
+    // Listen for auth state changes to catch when Supabase processes the URL
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+      if (event === 'PASSWORD_RECOVERY' || session) {
         setIsResetting(true);
-        console.log('Password reset mode activated via session');
       }
+      setChecking(false);
+    });
+
+    // Also perform an immediate session check with a slight fallback delay
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (!mounted) return;
+        if (session) setIsResetting(true);
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setTimeout(() => {
+          if (!mounted) return;
+          setChecking(false);
+        }, 300);
+      });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
     };
-
-    checkResetMode();
   }, [searchParams]);
 
   const handleRequestReset = async (e: React.FormEvent) => {
@@ -113,6 +134,14 @@ const ForgotPassword = () => {
       setLoading(false);
     }
   };
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 flex items-center justify-center p-4">
