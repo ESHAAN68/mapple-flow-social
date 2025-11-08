@@ -30,17 +30,33 @@ const ForgotPassword = () => {
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [searchParams] = useSearchParams();
+  const [isResetting, setIsResetting] = useState(false);
   const navigate = useNavigate();
 
-  // Check if this is a password reset (user clicked email link)
-  const isResetting = searchParams.get('type') === 'recovery';
-
   useEffect(() => {
-    // If user came from email link, we're in reset mode
-    if (isResetting) {
-      console.log('Password reset mode activated');
-    }
-  }, [isResetting]);
+    // Check if this is a password reset by looking at hash fragments and query params
+    const checkResetMode = async () => {
+      // Check URL for type=recovery in query params or hash
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const typeFromHash = hashParams.get('type');
+      const typeFromQuery = searchParams.get('type');
+      
+      if (typeFromHash === 'recovery' || typeFromQuery === 'recovery') {
+        setIsResetting(true);
+        console.log('Password reset mode activated');
+        return;
+      }
+
+      // Also check if user has an active session (they clicked the email link)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setIsResetting(true);
+        console.log('Password reset mode activated via session');
+      }
+    };
+
+    checkResetMode();
+  }, [searchParams]);
 
   const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault();
