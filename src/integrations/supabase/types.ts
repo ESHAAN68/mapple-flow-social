@@ -672,10 +672,7 @@ export type Database = {
         Args: { team_id: string; user_id: string }
         Returns: boolean
       }
-      start_conversation: {
-        Args: { other_user_id: string }
-        Returns: string
-      }
+      start_conversation: { Args: { other_user_id: string }; Returns: string }
       user_can_view_conversation_participants: {
         Args: { conversation_id: string; requesting_user_id: string }
         Returns: boolean
