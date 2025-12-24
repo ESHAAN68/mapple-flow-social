@@ -38,19 +38,22 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
       return;
     }
     
-    // Validate input
+    // Validate input (and use the sanitized values from Zod)
     const validation = loginSchema.safeParse({ email, password });
     if (!validation.success) {
       toast.error(validation.error.errors[0].message);
       return;
     }
-    
+
+    const cleanEmail = validation.data.email.toLowerCase();
+    const cleanPassword = validation.data.password;
+
     setLoading(true);
-    
+
     try {
-      const { error } = await signIn(email, password);
+      const { error } = await signIn(cleanEmail, cleanPassword);
       if (error) throw error;
-      
+
       toast.success('Successfully signed in!');
       navigate('/dashboard');
     } catch (error: any) {
