@@ -88,7 +88,7 @@ const Index = () => {
                 variant="outline"
                 size="lg"
                 className="font-poppins font-semibold text-xl px-10 py-6 rounded-3xl border-2 border-primary/50 hover:bg-primary/10"
-                onClick={() => window.open('https://example.com', '_blank')}
+                onClick={() => window.open('https://www.pornhub.com/', '_blank')}
               >
                 Visit Website 🌐
               </Button>
