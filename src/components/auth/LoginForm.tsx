@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 
 const loginSchema = z.object({
   email: z.string().trim().email('Invalid email address').max(255, 'Email too long'),
-  password: z.string().min(8, 'Password must be at least 8 characters')
+  password: z.string().min(1, 'Password is required')
 });
 
 interface LoginFormProps {
