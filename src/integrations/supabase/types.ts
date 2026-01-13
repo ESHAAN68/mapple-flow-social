@@ -59,6 +59,69 @@ export type Database = {
           },
         ]
       }
+      admin_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          message_type: string
+          read_at: string | null
+          sender_id: string | null
+          subject: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          message_type?: string
+          read_at?: string | null
+          sender_id?: string | null
+          subject: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          message_type?: string
+          read_at?: string | null
+          sender_id?: string | null
+          subject?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      announcements: {
+        Row: {
+          announcement_type: string
+          content: string
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          title: string
+        }
+        Insert: {
+          announcement_type?: string
+          content: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          title: string
+        }
+        Update: {
+          announcement_type?: string
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
       board_collaborators: {
         Row: {
           board_id: string | null
@@ -344,6 +407,8 @@ export type Database = {
         Row: {
           avatar_url: string | null
           badges: string[] | null
+          ban_reason: string | null
+          banned_at: string | null
           bio: string | null
           company: string | null
           created_at: string | null
@@ -351,6 +416,7 @@ export type Database = {
           display_name: string | null
           id: string
           last_seen: string | null
+          limited_until: string | null
           location: string | null
           privacy_settings: Json | null
           profile_banner: string | null
@@ -367,12 +433,15 @@ export type Database = {
           theme_color: string | null
           timezone: string | null
           updated_at: string | null
+          user_status: Database["public"]["Enums"]["user_status"] | null
           username: string | null
           website: string | null
         }
         Insert: {
           avatar_url?: string | null
           badges?: string[] | null
+          ban_reason?: string | null
+          banned_at?: string | null
           bio?: string | null
           company?: string | null
           created_at?: string | null
@@ -380,6 +449,7 @@ export type Database = {
           display_name?: string | null
           id: string
           last_seen?: string | null
+          limited_until?: string | null
           location?: string | null
           privacy_settings?: Json | null
           profile_banner?: string | null
@@ -396,12 +466,15 @@ export type Database = {
           theme_color?: string | null
           timezone?: string | null
           updated_at?: string | null
+          user_status?: Database["public"]["Enums"]["user_status"] | null
           username?: string | null
           website?: string | null
         }
         Update: {
           avatar_url?: string | null
           badges?: string[] | null
+          ban_reason?: string | null
+          banned_at?: string | null
           bio?: string | null
           company?: string | null
           created_at?: string | null
@@ -409,6 +482,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           last_seen?: string | null
+          limited_until?: string | null
           location?: string | null
           privacy_settings?: Json | null
           profile_banner?: string | null
@@ -425,6 +499,7 @@ export type Database = {
           theme_color?: string | null
           timezone?: string | null
           updated_at?: string | null
+          user_status?: Database["public"]["Enums"]["user_status"] | null
           username?: string | null
           website?: string | null
         }
@@ -518,6 +593,38 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      user_announcements: {
+        Row: {
+          announcement_id: string
+          created_at: string
+          id: string
+          read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_announcements_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_conversations: {
         Row: {
@@ -616,6 +723,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       voice_calls: {
         Row: {
           caller_id: string
@@ -660,6 +788,14 @@ export type Database = {
         Args: { board_id: string; user_id: string }
         Returns: boolean
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin_email: { Args: { _user_id: string }; Returns: boolean }
       is_board_collaborator: {
         Args: { board_id: string; user_id: string }
         Returns: boolean
@@ -679,7 +815,8 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
+      user_status: "active" | "limited" | "banned"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -806,6 +943,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+      user_status: ["active", "limited", "banned"],
+    },
   },
 } as const

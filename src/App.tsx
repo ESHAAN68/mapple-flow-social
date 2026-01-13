@@ -25,6 +25,7 @@ import SecureChat from "./pages/SecureChat";
 import NotFound from "./pages/NotFound";
 import SpotifyCallback from "./pages/SpotifyCallback";
 import Map from "./pages/Map";
+import Admin from "./pages/Admin";
 
 const queryClient = new QueryClient();
 
@@ -130,6 +131,11 @@ const AppRoutes = () => {
           <ChaosWrapper delay={0.45}>
             <Map />
           </ChaosWrapper>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin" element={
+        <ProtectedRoute>
+          <Admin />
         </ProtectedRoute>
       } />
       <Route path="/auth/spotify/callback" element={
