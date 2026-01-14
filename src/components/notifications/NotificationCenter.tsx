@@ -19,7 +19,11 @@ import {
   Check,
   CheckCheck,
   Trash2,
-  Settings
+  Settings,
+  Megaphone,
+  AlertTriangle,
+  AlertCircle,
+  Info
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -44,6 +48,9 @@ export const NotificationCenter: React.FC = () => {
     if (Notification.permission === 'default') {
       Notification.requestPermission();
     }
+
+    // Fetch existing admin messages and announcements
+    fetchAdminNotifications();
 
     // Set up real-time subscriptions for notifications
     const messageChannel = supabase
@@ -96,13 +103,10 @@ export const NotificationCenter: React.FC = () => {
           table: 'board_collaborators',
         },
         async (payload) => {
-          console.log('Board collaborator insert detected:', payload);
           const collaboration = payload.new;
           
           // Only notify if invitation is for current user
           if (collaboration.user_id === user.id) {
-            console.log('Invitation is for current user, fetching board and inviter info...');
-            
             // Get board and inviter info
             const { data: boardData } = await supabase
               .from('boards')
@@ -116,11 +120,6 @@ export const NotificationCenter: React.FC = () => {
               .eq('id', collaboration.invited_by)
               .single();
 
-            console.log('Adding board invite notification:', {
-              board: boardData?.title,
-              inviter: inviterProfile?.display_name || inviterProfile?.username
-            });
-
             addNotification({
               type: 'board_invite',
               title: 'Board Invitation',
@@ -129,8 +128,53 @@ export const NotificationCenter: React.FC = () => {
               from_username: inviterProfile?.username || 'Unknown',
               board_id: collaboration.board_id,
             });
-          } else {
-            console.log('Invitation is for another user:', collaboration.user_id);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'admin_messages',
+          filter: `user_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          const adminMsg = payload.new as any;
+          addNotification({
+            type: 'admin_warning',
+            title: adminMsg.subject,
+            message: adminMsg.content.substring(0, 100) + (adminMsg.content.length > 100 ? '...' : ''),
+            from_user_id: adminMsg.sender_id || 'system',
+            from_username: 'Admin',
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'user_announcements',
+          filter: `user_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          const userAnn = payload.new as any;
+          // Fetch the announcement details
+          const { data: announcement } = await supabase
+            .from('announcements')
+            .select('*')
+            .eq('id', userAnn.announcement_id)
+            .single();
+          
+          if (announcement) {
+            addNotification({
+              type: 'announcement',
+              title: `📢 ${announcement.title}`,
+              message: announcement.content.substring(0, 100) + (announcement.content.length > 100 ? '...' : ''),
+              from_user_id: announcement.created_by || 'system',
+              from_username: 'System',
+            });
           }
         }
       )
@@ -140,6 +184,51 @@ export const NotificationCenter: React.FC = () => {
       supabase.removeChannel(messageChannel);
     };
   }, [user, addNotification]);
+
+  // Fetch existing unread admin messages and announcements
+  const fetchAdminNotifications = async () => {
+    if (!user) return;
+
+    // Fetch unread admin messages
+    const { data: adminMessages } = await supabase
+      .from('admin_messages')
+      .select('*')
+      .eq('user_id', user.id)
+      .is('read_at', null)
+      .order('created_at', { ascending: false });
+
+    // Fetch unread announcements
+    const { data: userAnnouncements } = await supabase
+      .from('user_announcements')
+      .select(`*, announcement:announcements(*)`)
+      .eq('user_id', user.id)
+      .is('read_at', null)
+      .order('created_at', { ascending: false });
+
+    // Add admin messages as notifications (only if not already present)
+    adminMessages?.forEach((msg) => {
+      addNotification({
+        type: 'admin_warning',
+        title: msg.subject,
+        message: msg.content.substring(0, 100) + (msg.content.length > 100 ? '...' : ''),
+        from_user_id: msg.sender_id || 'system',
+        from_username: 'Admin',
+      });
+    });
+
+    // Add announcements as notifications
+    userAnnouncements?.forEach((ua: any) => {
+      if (ua.announcement) {
+        addNotification({
+          type: 'announcement',
+          title: `📢 ${ua.announcement.title}`,
+          message: ua.announcement.content.substring(0, 100) + (ua.announcement.content.length > 100 ? '...' : ''),
+          from_user_id: ua.announcement.created_by || 'system',
+          from_username: 'System',
+        });
+      }
+    });
+  };
 
   const handleNotificationClick = (notification: any) => {
     markAsRead(notification.id);
@@ -176,6 +265,10 @@ export const NotificationCenter: React.FC = () => {
         return <Folder className="h-4 w-4 text-purple-500" />;
       case 'team_invite':
         return <Users className="h-4 w-4 text-orange-500" />;
+      case 'announcement':
+        return <Megaphone className="h-4 w-4 text-primary" />;
+      case 'admin_warning':
+        return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
       default:
         return <Bell className="h-4 w-4" />;
     }

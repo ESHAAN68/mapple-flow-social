@@ -29,7 +29,6 @@ import {
   BarChart3, PieChart, LineChart, Target, Award, Crown, Sparkles,
   Code, Database, Cloud, Shield, Rocket, Coffee, Heart
 } from 'lucide-react';
-import { AdminMessagesInbox } from '@/components/admin/AdminMessagesInbox';
 import { useAdmin } from '@/hooks/useAdmin';
 
 interface Board {
@@ -787,11 +786,6 @@ export default function Dashboard() {
       
       {/* Spotify Player - only show if connected */}
       {spotifyConnected && <SpotifyPlayer />}
-      
-      {/* Admin Messages Inbox - Fixed position bottom right */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <AdminMessagesInbox />
-      </div>
     </div>
   );
 }
