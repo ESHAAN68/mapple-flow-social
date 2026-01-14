@@ -29,6 +29,8 @@ import {
   BarChart3, PieChart, LineChart, Target, Award, Crown, Sparkles,
   Code, Database, Cloud, Shield, Rocket, Coffee, Heart
 } from 'lucide-react';
+import { AdminMessagesInbox } from '@/components/admin/AdminMessagesInbox';
+import { useAdmin } from '@/hooks/useAdmin';
 
 interface Board {
   id: string;
@@ -49,6 +51,7 @@ export default function Dashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isAdmin } = useAdmin();
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -469,6 +472,18 @@ export default function Dashboard() {
               />
               <NotificationCenter />
               
+              {/* Admin Panel Button - Only visible for admins */}
+              {isAdmin && (
+                <Button
+                  size="sm" 
+                  variant="ghost" 
+                  className="hover:bg-red-500/10 text-red-400"
+                  onClick={() => navigate('/admin')}
+                >
+                  <Shield className="h-4 w-4" />
+                </Button>
+              )}
+              
               <Button
                 size="sm" 
                 variant="ghost" 
@@ -772,6 +787,11 @@ export default function Dashboard() {
       
       {/* Spotify Player - only show if connected */}
       {spotifyConnected && <SpotifyPlayer />}
+      
+      {/* Admin Messages Inbox - Fixed position bottom right */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <AdminMessagesInbox />
+      </div>
     </div>
   );
 }
