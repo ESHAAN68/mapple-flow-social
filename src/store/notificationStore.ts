@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 
 interface Notification {
   id: string;
-  type: 'message' | 'call' | 'board_invite' | 'team_invite';
+  type: 'message' | 'call' | 'board_invite' | 'team_invite' | 'announcement' | 'admin_warning';
   title: string;
   message: string;
   from_user_id: string;

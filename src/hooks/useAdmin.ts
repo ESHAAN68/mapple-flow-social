@@ -77,6 +77,7 @@ export function useAdminActions() {
   const sendWarning = async (userId: string, subject: string, content: string, type: 'info' | 'warning' | 'final_warning') => {
     if (!user) throw new Error('Must be authenticated');
 
+    // First, store in admin_messages for record keeping
     const { data, error } = await supabase
       .from('admin_messages')
       .insert({
@@ -90,6 +91,32 @@ export function useAdminActions() {
       .single();
 
     if (error) throw error;
+
+    // Also send as a DM so it appears in their chat
+    try {
+      // Use the start_conversation function to get/create conversation
+      const { data: conversationId, error: convError } = await supabase.rpc('start_conversation', {
+        other_user_id: userId
+      });
+
+      if (!convError && conversationId) {
+        // Send the warning as a message in the DM
+        const formattedMessage = `⚠️ **${subject}**\n\n${content}`;
+        
+        await supabase
+          .from('user_messages')
+          .insert({
+            conversation_id: conversationId,
+            sender_id: user.id,
+            content: formattedMessage,
+            message_type: 'text'
+          });
+      }
+    } catch (dmError) {
+      console.error('Failed to send warning as DM:', dmError);
+      // Don't throw - the admin message was still saved
+    }
+
     return data;
   };
 
