@@ -44,6 +44,7 @@ interface Message {
   sender_id: string;
   content: string;
   message_type: string;
+  is_admin_message?: boolean;
   created_at: string;
   sender?: User;
 }
@@ -522,39 +523,50 @@ export const SimpleChat: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${
-                      message.sender_id === user?.id ? 'flex-row-reverse space-x-reverse' : ''
+                    <div className={`flex flex-col max-w-xs lg:max-w-md ${
+                      message.sender_id === user?.id ? 'items-end' : 'items-start'
                     }`}>
-                      <Avatar 
-                        className="w-6 h-6 cursor-pointer hover:scale-110 transition-transform"
-                        onClick={() => {
-                          if (message.sender && message.sender_id !== user?.id) {
-                            handleProfileClick(message.sender_id);
-                          }
-                        }}
-                      >
-                        <AvatarImage src={message.sender?.avatar_url || ''} />
-                        <AvatarFallback className="text-xs">
-                          {(message.sender?.display_name || message.sender?.username || 'U')[0].toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className={`rounded-2xl px-4 py-2 ${
-                        message.sender_id === user?.id 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'bg-muted'
+                      <div className={`flex items-end space-x-2 ${
+                        message.sender_id === user?.id ? 'flex-row-reverse space-x-reverse' : ''
                       }`}>
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                        <p className={`text-xs mt-1 ${
-                          message.sender_id === user?.id 
-                            ? 'text-primary-foreground/70' 
-                            : 'text-muted-foreground'
+                        <Avatar
+                          className="w-6 h-6 cursor-pointer hover:scale-110 transition-transform"
+                          onClick={() => {
+                            if (message.sender && message.sender_id !== user?.id) {
+                              handleProfileClick(message.sender_id);
+                            }
+                          }}
+                        >
+                          <AvatarImage src={message.sender?.avatar_url || ''} />
+                          <AvatarFallback className="text-xs">
+                            {(message.sender?.display_name || message.sender?.username || 'U')[0].toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className={`rounded-2xl px-4 py-2 ${
+                          message.sender_id === user?.id
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
                         }`}>
-                          {new Date(message.created_at).toLocaleTimeString([], { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </p>
+                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          <p className={`text-xs mt-1 ${
+                            message.sender_id === user?.id
+                              ? 'text-primary-foreground/70'
+                              : 'text-muted-foreground'
+                          }`}>
+                            {new Date(message.created_at).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
                       </div>
+                      {message.is_admin_message && message.sender_id !== user?.id && (
+                        <div className="mt-1 flex items-center space-x-1">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            Official Admin
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 ))}

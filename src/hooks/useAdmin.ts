@@ -102,14 +102,15 @@ export function useAdminActions() {
       if (!convError && conversationId) {
         // Send the warning as a message in the DM
         const formattedMessage = `⚠️ **${subject}**\n\n${content}`;
-        
+
         await supabase
           .from('user_messages')
           .insert({
             conversation_id: conversationId,
             sender_id: user.id,
             content: formattedMessage,
-            message_type: 'text'
+            message_type: 'text',
+            is_admin_message: true
           });
       }
     } catch (dmError) {
