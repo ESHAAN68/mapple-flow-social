@@ -15,12 +15,17 @@ import {
   MessageSquare, 
   Phone, 
   PhoneOff,
-  ArrowLeft
+  ArrowLeft,
+  ShieldCheck
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserSearch } from './UserSearch';
 import { WebRTCCall } from './WebRTCCall';
 import { UserProfileModal } from './UserProfileModal';
+
+// Admin emails that have access to admin panel
+const ADMIN_EMAILS = ['eshaanniranjan460@gmail.com'];
 
 interface User {
   id: string;
@@ -45,9 +50,23 @@ interface Message {
   content: string;
   message_type: string;
   is_admin_message?: boolean;
+  sender_is_admin?: boolean;
   created_at: string;
   sender?: User;
 }
+
+// Helper function to check if a user ID belongs to an admin
+const checkIfAdmin = async (userId: string): Promise<boolean> => {
+  try {
+    // We need to check the user's email from auth.users via a profile lookup
+    // Since we can't access auth.users directly, we'll use a workaround
+    // The admin email is hardcoded for now
+    const { data } = await supabase.rpc('is_admin_email', { _user_id: userId });
+    return data === true;
+  } catch {
+    return false;
+  }
+};
 
 export const SimpleChat: React.FC = () => {
   const { user } = useAuth();
@@ -216,7 +235,7 @@ export const SimpleChat: React.FC = () => {
 
       if (error) throw error;
 
-      // Get sender info for each message
+      // Get sender info for each message and check if sender is admin
       const messagesWithSender = await Promise.all(
         (data || []).map(async (msg) => {
           const { data: senderData } = await supabase
@@ -225,9 +244,13 @@ export const SimpleChat: React.FC = () => {
             .eq('id', msg.sender_id)
             .single();
 
+          // Check if sender is an admin
+          const isAdmin = await checkIfAdmin(msg.sender_id);
+
           return {
             ...msg,
-            sender: senderData
+            sender: senderData,
+            sender_is_admin: isAdmin
           };
         })
       );
@@ -280,14 +303,17 @@ export const SimpleChat: React.FC = () => {
             });
           }
 
-          // Get sender info
+          // Get sender info and check if admin
           const { data: senderData } = await supabase
             .from('profiles')
             .select('id, username, display_name, avatar_url')
             .eq('id', newMessage.sender_id)
             .single();
 
-          setMessages(prev => [...prev, { ...newMessage, sender: senderData }]);
+          // Check if sender is an admin
+          const isAdmin = await checkIfAdmin(newMessage.sender_id);
+
+          setMessages(prev => [...prev, { ...newMessage, sender: senderData, sender_is_admin: isAdmin }]);
           
           // Update conversations list
           loadConversations();
@@ -560,12 +586,11 @@ export const SimpleChat: React.FC = () => {
                           </p>
                         </div>
                       </div>
-                      {message.is_admin_message && message.sender_id !== user?.id && (
-                        <div className="mt-1 flex items-center space-x-1">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                            Official Admin
-                          </span>
-                        </div>
+                      {message.sender_is_admin && message.sender_id !== user?.id && (
+                        <Badge variant="outline" className="mt-1 border-primary bg-primary/10 text-primary">
+                          <ShieldCheck className="h-3 w-3 mr-1" />
+                          Admin
+                        </Badge>
                       )}
                     </div>
                   </motion.div>

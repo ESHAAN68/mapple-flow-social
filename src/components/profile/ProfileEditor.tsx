@@ -135,10 +135,12 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ userId, isReadOnly
     setLoading(true);
 
     try {
-      const { error } = await supabase
+      console.log('Updating profile for user:', user.id);
+      console.log('Profile data:', profile);
+
+      const { data, error } = await supabase
         .from('profiles')
-        .upsert({
-          id: user.id,
+        .update({
           username: profile.username,
           display_name: profile.display_name,
           bio: profile.bio,
@@ -146,16 +148,19 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ userId, isReadOnly
           skills: profile.skills,
           status: profile.status,
           updated_at: new Date().toISOString()
-        });
+        })
+        .eq('id', user.id)
+        .select();
 
       if (error) {
         console.error('Profile update error:', error);
         toast({
           title: "Error",
-          description: "Failed to update profile",
+          description: `Failed to update profile: ${error.message}`,
           variant: "destructive"
         });
       } else {
+        console.log('Profile updated successfully:', data);
         toast({
           title: "Success",
           description: "Profile updated successfully! ✨"
