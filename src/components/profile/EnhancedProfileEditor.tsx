@@ -87,7 +87,7 @@ interface EnhancedProfileEditorProps {
 }
 
 export const EnhancedProfileEditor: React.FC<EnhancedProfileEditorProps> = ({ userId, isReadOnly = false }) => {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -210,7 +210,8 @@ export const EnhancedProfileEditor: React.FC<EnhancedProfileEditorProps> = ({ us
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id)
-        .select();
+        .select()
+        .single();
 
       if (error) {
         console.error('Profile update error:', error);
@@ -221,6 +222,31 @@ export const EnhancedProfileEditor: React.FC<EnhancedProfileEditorProps> = ({ us
         });
       } else {
         console.log('Profile updated successfully:', data);
+        // Update editor immediately
+        setProfile({
+          username: data.username || '',
+          display_name: data.display_name || '',
+          bio: data.bio || '',
+          avatar_url: data.avatar_url || '',
+          skills: data.skills || [],
+          status: data.status || 'online',
+          pronouns: (data as any).pronouns || '',
+          location: (data as any).location || '',
+          website: (data as any).website || '',
+          company: (data as any).company || '',
+          timezone: (data as any).timezone || '',
+          theme_color: (data as any).theme_color || '#3B82F6',
+          profile_banner: (data as any).profile_banner || '',
+          social_links: (data as any).social_links || {},
+          privacy_settings: (data as any).privacy_settings || {
+            show_email: true,
+            show_status: true,
+            allow_messages: true,
+          },
+          custom_status: (data as any).custom_status || '',
+          badges: (data as any).badges || [],
+        });
+        await refreshProfile();
         toast({
           title: "Success",
           description: "Profile updated successfully! ✨"
@@ -288,7 +314,26 @@ export const EnhancedProfileEditor: React.FC<EnhancedProfileEditorProps> = ({ us
         .from('avatars')
         .getPublicUrl(fileName);
 
-      setProfile(prev => ({ ...prev, avatar_url: data.publicUrl }));
+      const nextUrl = data.publicUrl;
+      setProfile(prev => ({ ...prev, avatar_url: nextUrl }));
+
+      // Persist immediately so it doesn't revert when closing the dialog
+      const { error: profileUpdateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: nextUrl, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+
+      if (profileUpdateError) {
+        console.error('Profile avatar update error:', profileUpdateError);
+        toast({
+          title: "Error",
+          description: `Avatar uploaded but failed to save: ${profileUpdateError.message}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      await refreshProfile();
 
       toast({
         title: "Avatar updated! 🎉",
@@ -356,10 +401,16 @@ export const EnhancedProfileEditor: React.FC<EnhancedProfileEditorProps> = ({ us
               <Button
                 variant={isEditing ? "default" : "outline"}
                 size="sm"
-                onClick={() => setIsEditing(!isEditing)}
+                onClick={() => {
+                  if (isEditing) {
+                    void updateProfile();
+                  } else {
+                    setIsEditing(true);
+                  }
+                }}
               >
                 {isEditing ? <Save className="h-4 w-4" /> : <Edit3 className="h-4 w-4" />}
-                {isEditing ? 'Save Mode' : 'Edit Mode'}
+                {isEditing ? 'Save' : 'Edit'}
               </Button>
             )}
           </DialogTitle>
