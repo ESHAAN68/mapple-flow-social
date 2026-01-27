@@ -184,22 +184,43 @@ export const EnhancedProfileEditor: React.FC<EnhancedProfileEditorProps> = ({ us
     setLoading(true);
 
     try {
-      const { error } = await supabase
+      console.log('Updating enhanced profile for user:', user.id);
+      console.log('Profile data:', profile);
+
+      const { data, error } = await supabase
         .from('profiles')
-        .upsert({
-          id: user.id,
-          ...profile,
+        .update({
+          username: profile.username,
+          display_name: profile.display_name,
+          bio: profile.bio,
+          avatar_url: profile.avatar_url,
+          skills: profile.skills,
+          status: profile.status,
+          pronouns: profile.pronouns,
+          location: profile.location,
+          website: profile.website,
+          company: profile.company,
+          timezone: profile.timezone,
+          theme_color: profile.theme_color,
+          profile_banner: profile.profile_banner,
+          social_links: profile.social_links,
+          privacy_settings: profile.privacy_settings,
+          custom_status: profile.custom_status,
+          badges: profile.badges,
           updated_at: new Date().toISOString()
-        });
+        })
+        .eq('id', user.id)
+        .select();
 
       if (error) {
         console.error('Profile update error:', error);
         toast({
           title: "Error",
-          description: "Failed to update profile",
+          description: `Failed to update profile: ${error.message}`,
           variant: "destructive"
         });
       } else {
+        console.log('Profile updated successfully:', data);
         toast({
           title: "Success",
           description: "Profile updated successfully! ✨"
