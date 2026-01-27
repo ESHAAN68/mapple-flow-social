@@ -28,7 +28,7 @@ interface ProfileEditorProps {
 }
 
 export const ProfileEditor: React.FC<ProfileEditorProps> = ({ userId, isReadOnly = false }) => {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -150,7 +150,8 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ userId, isReadOnly
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id)
-        .select();
+        .select()
+        .single();
 
       if (error) {
         console.error('Profile update error:', error);
@@ -161,6 +162,17 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ userId, isReadOnly
         });
       } else {
         console.log('Profile updated successfully:', data);
+        // Update local editor state immediately
+        setProfile({
+          username: data.username || '',
+          display_name: data.display_name || '',
+          bio: data.bio || '',
+          avatar_url: data.avatar_url || '',
+          skills: data.skills || [],
+          status: data.status || 'offline'
+        });
+        // Update global profile used across the app (Dashboard header, etc.)
+        await refreshProfile();
         toast({
           title: "Success",
           description: "Profile updated successfully! ✨"
@@ -330,10 +342,16 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ userId, isReadOnly
               <Button
                 variant={isEditing ? "default" : "outline"}
                 size="sm"
-                onClick={() => setIsEditing(!isEditing)}
+                onClick={() => {
+                  if (isEditing) {
+                    void updateProfile();
+                  } else {
+                    setIsEditing(true);
+                  }
+                }}
               >
                 {isEditing ? <Save className="h-4 w-4" /> : <Edit3 className="h-4 w-4" />}
-                {isEditing ? 'Save Mode' : 'Edit Mode'}
+                {isEditing ? 'Save' : 'Edit'}
               </Button>
             )}
           </DialogTitle>

@@ -47,7 +47,7 @@ interface Board {
 }
 
 export default function Dashboard() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAdmin } = useAdmin();
@@ -58,6 +58,12 @@ export default function Dashboard() {
   const [newBoard, setNewBoard] = useState({ title: '', description: '' });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+
+  const displayName =
+    profile?.display_name ||
+    profile?.username ||
+    user?.email?.split('@')?.[0] ||
+    'User';
   
   // Spotify integration
   const { isConnected: spotifyConnected, spotifyProfile, handleConnectionChange } = useSpotify();
@@ -496,11 +502,12 @@ export default function Dashboard() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="flex items-center gap-2 hover:bg-primary/10">
                     <Avatar className="h-6 w-6">
+                        <AvatarImage src={profile?.avatar_url || ''} />
                       <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-xs">
-                        {user?.email?.[0]?.toUpperCase()}
+                          {displayName?.[0]?.toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="hidden md:inline font-medium">{user?.email?.split('@')[0]}</span>
+                      <span className="hidden md:inline font-medium">{displayName}</span>
                     <Crown className="h-3 w-3 text-amber-500" />
                     <ChevronDown className="h-3 w-3" />
                   </Button>
