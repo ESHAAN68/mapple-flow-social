@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,23 +53,52 @@ interface Message {
   sender_is_admin?: boolean;
   created_at: string;
   sender?: User;
+  isPending?: boolean; // For optimistic updates
 }
 
-// Helper function to check if a user ID belongs to an admin
+// Cache for admin status to avoid repeated RPC calls
+const adminCache = new Map<string, boolean>();
+
+// Helper function to check if a user ID belongs to an admin (with caching)
 const checkIfAdmin = async (userId: string): Promise<boolean> => {
+  if (adminCache.has(userId)) {
+    return adminCache.get(userId)!;
+  }
   try {
-    // We need to check the user's email from auth.users via a profile lookup
-    // Since we can't access auth.users directly, we'll use a workaround
-    // The admin email is hardcoded for now
     const { data } = await supabase.rpc('is_admin_email', { _user_id: userId });
-    return data === true;
+    const isAdmin = data === true;
+    adminCache.set(userId, isAdmin);
+    return isAdmin;
   } catch {
     return false;
   }
 };
 
+// Cache for user profiles
+const profileCache = new Map<string, User>();
+
+const getCachedProfile = async (userId: string): Promise<User | null> => {
+  if (profileCache.has(userId)) {
+    return profileCache.get(userId)!;
+  }
+  try {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, username, display_name, avatar_url')
+      .eq('id', userId)
+      .single();
+    if (data) {
+      profileCache.set(userId, data);
+      return data;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
 export const SimpleChat: React.FC = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const { addNotification } = useNotificationStore();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -80,9 +109,26 @@ export const SimpleChat: React.FC = () => {
   const [isCallActive, setIsCallActive] = useState(false);
   const [selectedProfileUserId, setSelectedProfileUserId] = useState<string | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Memoize current user's profile for optimistic updates
+  const currentUserProfile = useMemo(() => ({
+    id: user?.id || '',
+    username: profile?.username || null,
+    display_name: profile?.display_name || null,
+    avatar_url: profile?.avatar_url || null,
+  }), [user?.id, profile]);
+
+  // Pre-cache current user profile
+  useEffect(() => {
+    if (user?.id && profile) {
+      profileCache.set(user.id, currentUserProfile);
+    }
+  }, [user?.id, profile, currentUserProfile]);
 
   // Load conversations
   useEffect(() => {
@@ -104,9 +150,9 @@ export const SimpleChat: React.FC = () => {
     };
   }, [selectedConversation]);
 
-  // Scroll to bottom when messages change
+  // Instant scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
   }, [messages]);
 
   const loadConversations = async () => {
@@ -159,29 +205,10 @@ export const SimpleChat: React.FC = () => {
 
           let otherUser = null;
           if (otherParticipants && otherParticipants.length > 0) {
-            try {
-              const { data: profileData, error: profileError } = await supabase
-                .from('profiles')
-                .select('id, username, display_name, avatar_url')
-                .eq('id', otherParticipants[0].user_id)
-                .single();
-              
-              console.log('Profile data for user', otherParticipants[0].user_id, ':', profileData);
-              
-              if (profileError) {
-                console.error('Error fetching profile:', profileError);
-                // If profile doesn't exist, create a fallback with the user ID
-                otherUser = {
-                  id: otherParticipants[0].user_id,
-                  username: `User_${otherParticipants[0].user_id.slice(0, 8)}`,
-                  display_name: `User_${otherParticipants[0].user_id.slice(0, 8)}`,
-                  avatar_url: null
-                };
-              } else {
-                otherUser = profileData;
-              }
-            } catch (error) {
-              console.error('Profile fetch failed:', error);
+            otherUser = await getCachedProfile(otherParticipants[0].user_id);
+            console.log('Profile data for user', otherParticipants[0].user_id, ':', otherUser);
+            
+            if (!otherUser) {
               otherUser = {
                 id: otherParticipants[0].user_id,
                 username: `User_${otherParticipants[0].user_id.slice(0, 8)}`,
@@ -235,17 +262,13 @@ export const SimpleChat: React.FC = () => {
 
       if (error) throw error;
 
-      // Get sender info for each message and check if sender is admin
+      // Get sender info for each message in parallel (using cache)
       const messagesWithSender = await Promise.all(
         (data || []).map(async (msg) => {
-          const { data: senderData } = await supabase
-            .from('profiles')
-            .select('id, username, display_name, avatar_url')
-            .eq('id', msg.sender_id)
-            .single();
-
-          // Check if sender is an admin
-          const isAdmin = await checkIfAdmin(msg.sender_id);
+          const [senderData, isAdmin] = await Promise.all([
+            getCachedProfile(msg.sender_id),
+            checkIfAdmin(msg.sender_id)
+          ]);
 
           return {
             ...msg,
@@ -266,7 +289,7 @@ export const SimpleChat: React.FC = () => {
     }
   };
 
-  const setupRealtimeSubscription = () => {
+  const setupRealtimeSubscription = useCallback(() => {
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
     }
@@ -282,45 +305,45 @@ export const SimpleChat: React.FC = () => {
           filter: `conversation_id=eq.${selectedConversation}`
         },
         async (payload) => {
-          const newMessage = payload.new as Message;
+          const newMsg = payload.new as Message;
           
-          // Add notification if message is not from current user
-          if (newMessage.sender_id !== user?.id) {
-            // Get sender info for notification
-            const { data: senderData } = await supabase
-              .from('profiles')
-              .select('username, display_name')
-              .eq('id', newMessage.sender_id)
-              .single();
-
-            addNotification({
-              type: 'message',
-              title: 'New Message',
-              message: `${senderData?.display_name || senderData?.username || 'Someone'}: ${newMessage.content.substring(0, 50)}${newMessage.content.length > 50 ? '...' : ''}`,
-              from_user_id: newMessage.sender_id,
-              from_username: senderData?.username || 'Unknown',
-              conversation_id: selectedConversation,
-            });
+          // Skip if this is our own message (we already added it optimistically)
+          if (newMsg.sender_id === user?.id) {
+            // Update the pending message with real data (remove pending flag)
+            setMessages(prev => 
+              prev.map(m => 
+                m.isPending && m.content === newMsg.content && m.sender_id === newMsg.sender_id
+                  ? { ...newMsg, sender: currentUserProfile, sender_is_admin: false, isPending: false }
+                  : m
+              )
+            );
+            return;
           }
-
-          // Get sender info and check if admin
-          const { data: senderData } = await supabase
-            .from('profiles')
-            .select('id, username, display_name, avatar_url')
-            .eq('id', newMessage.sender_id)
-            .single();
-
-          // Check if sender is an admin
-          const isAdmin = await checkIfAdmin(newMessage.sender_id);
-
-          setMessages(prev => [...prev, { ...newMessage, sender: senderData, sender_is_admin: isAdmin }]);
           
-          // Update conversations list
-          loadConversations();
+          // For incoming messages from others, add notification immediately
+          const senderData = await getCachedProfile(newMsg.sender_id);
+          
+          addNotification({
+            type: 'message',
+            title: 'New Message',
+            message: `${senderData?.display_name || senderData?.username || 'Someone'}: ${newMsg.content.substring(0, 50)}${newMsg.content.length > 50 ? '...' : ''}`,
+            from_user_id: newMsg.sender_id,
+            from_username: senderData?.username || 'Unknown',
+            conversation_id: selectedConversation || undefined,
+          });
+
+          // Check if sender is an admin (using cache)
+          const isAdmin = await checkIfAdmin(newMsg.sender_id);
+
+          // Add message to state immediately
+          setMessages(prev => [...prev, { ...newMsg, sender: senderData, sender_is_admin: isAdmin }]);
+          
+          // Update conversation list in background (don't wait)
+          setTimeout(() => loadConversations(), 100);
         }
       )
       .subscribe();
-  };
+  }, [selectedConversation, user?.id, currentUserProfile, addNotification]);
 
   const startConversation = async (otherUserId: string, otherUser: User) => {
     if (!user) return;
@@ -351,8 +374,30 @@ export const SimpleChat: React.FC = () => {
     }
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation || !user) return;
+  const sendMessage = useCallback(async () => {
+    if (!newMessage.trim() || !selectedConversation || !user || isSending) return;
+
+    const messageContent = newMessage.trim();
+    const tempId = `temp-${Date.now()}-${Math.random()}`;
+    
+    // Clear input immediately for instant feedback
+    setNewMessage('');
+    setIsSending(true);
+    
+    // Add message optimistically with current user's profile
+    const optimisticMessage: Message = {
+      id: tempId,
+      conversation_id: selectedConversation,
+      sender_id: user.id,
+      content: messageContent,
+      message_type: 'text',
+      created_at: new Date().toISOString(),
+      sender: currentUserProfile,
+      sender_is_admin: false,
+      isPending: true
+    };
+    
+    setMessages(prev => [...prev, optimisticMessage]);
 
     try {
       const { error } = await supabase
@@ -361,13 +406,18 @@ export const SimpleChat: React.FC = () => {
           {
             conversation_id: selectedConversation,
             sender_id: user.id,
-            content: newMessage,
+            content: messageContent,
             message_type: 'text'
           }
         ]);
 
-      if (error) throw error;
-      setNewMessage('');
+      if (error) {
+        // Remove optimistic message on error
+        setMessages(prev => prev.filter(m => m.id !== tempId));
+        throw error;
+      }
+      
+      // The realtime subscription will update the message with real data
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -375,15 +425,19 @@ export const SimpleChat: React.FC = () => {
         description: "Failed to send message",
         variant: "destructive",
       });
+    } finally {
+      setIsSending(false);
+      // Refocus input for continuous typing
+      inputRef.current?.focus();
     }
-  };
+  }, [newMessage, selectedConversation, user, isSending, currentUserProfile, toast]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
-  };
+  }, [sendMessage]);
 
   const handleProfileClick = (userId: string) => {
     setSelectedProfileUserId(userId);
@@ -397,11 +451,7 @@ export const SimpleChat: React.FC = () => {
       setSelectedConversation(existingConv.id);
     } else {
       // Start new conversation
-      const { data: userData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const userData = await getCachedProfile(userId);
       
       if (userData) {
         await startConversation(userId, userData);
@@ -532,9 +582,6 @@ export const SimpleChat: React.FC = () => {
                       <Phone className="w-4 h-4" />
                     </Button>
                   )}
-                  <div className="text-xs text-muted-foreground">
-                    Debug: {selectedConvData?.other_user ? 'User loaded' : 'No user data'}
-                  </div>
                 </div>
               </div>
             </div>
@@ -543,11 +590,11 @@ export const SimpleChat: React.FC = () => {
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-4">
                 {messages.map((message) => (
-                  <motion.div
+                  <div
                     key={message.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'} ${
+                      message.isPending ? 'opacity-70' : ''
+                    }`}
                   >
                     <div className={`flex flex-col max-w-xs lg:max-w-md ${
                       message.sender_id === user?.id ? 'items-end' : 'items-start'
@@ -579,7 +626,7 @@ export const SimpleChat: React.FC = () => {
                               ? 'text-primary-foreground/70'
                               : 'text-muted-foreground'
                           }`}>
-                            {new Date(message.created_at).toLocaleTimeString([], {
+                            {message.isPending ? 'Sending...' : new Date(message.created_at).toLocaleTimeString([], {
                               hour: '2-digit',
                               minute: '2-digit'
                             })}
@@ -593,7 +640,7 @@ export const SimpleChat: React.FC = () => {
                         </Badge>
                       )}
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
                 <div ref={messagesEndRef} />
               </div>
@@ -603,13 +650,15 @@ export const SimpleChat: React.FC = () => {
             <div className="border-t border-border p-4 bg-card">
               <div className="flex items-center space-x-2">
                 <Input
+                  ref={inputRef}
                   placeholder="Type a message..."
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   className="flex-1"
+                  autoFocus
                 />
-                <Button onClick={sendMessage} disabled={!newMessage.trim()}>
+                <Button onClick={sendMessage} disabled={!newMessage.trim() || isSending}>
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
