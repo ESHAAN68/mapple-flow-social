@@ -10,21 +10,21 @@ serve(async (req) => {
 
   try {
     const { messages } = await req.json();
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
+    const NVIDIA_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!NVIDIA_API_KEY) throw new Error("NVIDIA API key is not configured");
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        Authorization: `Bearer ${NVIDIA_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "openai/gpt-oss-20b",
         messages: [
           { role: "system", content: `You're not just an AI assistant - you're the SPICY, fun guide to this collaborative workspace app! 🌶️ Think of yourself as that cool friend who knows everything about the app and isn't afraid to drop some personality while helping out.
 
-**IMPORTANT: You're powered by OpenAI GPT-4o - a highly capable AI assistant. Be helpful, be honest, and be real.**
+**IMPORTANT: You're powered by NVIDIA AI - a highly capable AI assistant. Be helpful, be honest, and be real.**
 
 **YOUR VIBE:**
 - Be witty, playful, and engaging - but never annoying
@@ -96,6 +96,9 @@ You're also a general-purpose AI! Help with:
 Remember: You're here to make this app feel less like a tool and more like a friend who happens to be really good at productivity! 🚀` },
           ...messages,
         ],
+        temperature: 1,
+        top_p: 1,
+        max_tokens: 4096,
         stream: true,
       }),
     });
@@ -108,7 +111,7 @@ Remember: You're here to make this app feel less like a tool and more like a fri
         });
       }
       const t = await response.text();
-      console.error("OpenAI API error:", response.status, t);
+      console.error("NVIDIA API error:", response.status, t);
       return new Response(JSON.stringify({ error: "AI API error" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
