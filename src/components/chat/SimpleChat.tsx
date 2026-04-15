@@ -462,6 +462,57 @@ export const SimpleChat: React.FC = () => {
     }
   };
 
+  const renderMessageContent = (message: Message) => {
+    const content = message.content;
+    
+    // Image message
+    const imageMatch = content.match(/^\[image:(.*?)\]$/);
+    if (imageMatch) {
+      return (
+        <img 
+          src={imageMatch[1]} 
+          alt="Shared image" 
+          className="max-w-[280px] rounded-lg cursor-pointer" 
+          onClick={() => window.open(imageMatch[1], '_blank')}
+        />
+      );
+    }
+    
+    // Video message
+    const videoMatch = content.match(/^\[video:(.*?)\]$/);
+    if (videoMatch) {
+      return (
+        <video src={videoMatch[1]} controls className="max-w-[280px] rounded-lg" />
+      );
+    }
+    
+    // Audio message
+    const audioMatch = content.match(/^\[audio:(.*?)\]$/);
+    if (audioMatch) {
+      return <audio src={audioMatch[1]} controls className="max-w-[250px]" />;
+    }
+    
+    // File message
+    const fileMatch = content.match(/^\[file:(.*?):(.*?)\]$/);
+    if (fileMatch) {
+      return (
+        <a
+          href={fileMatch[1]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center space-x-2 hover:opacity-80"
+        >
+          <FileText className="w-5 h-5 shrink-0" />
+          <span className="text-sm underline truncate max-w-[200px]">{fileMatch[2]}</span>
+          <Download className="w-4 h-4 shrink-0" />
+        </a>
+      );
+    }
+    
+    // Regular text
+    return <p className="text-sm whitespace-pre-wrap">{content}</p>;
+  };
+
   const selectedConvData = conversations.find(c => c.id === selectedConversation);
 
   return (
