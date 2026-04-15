@@ -16,8 +16,11 @@ import {
   Phone, 
   PhoneOff,
   ArrowLeft,
-  ShieldCheck
+  ShieldCheck,
+  FileText,
+  Download
 } from 'lucide-react';
+import { ChatAttachmentMenu } from './ChatAttachmentMenu';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserSearch } from './UserSearch';
@@ -459,6 +462,57 @@ export const SimpleChat: React.FC = () => {
     }
   };
 
+  const renderMessageContent = (message: Message) => {
+    const content = message.content;
+    
+    // Image message
+    const imageMatch = content.match(/^\[image:(.*?)\]$/);
+    if (imageMatch) {
+      return (
+        <img 
+          src={imageMatch[1]} 
+          alt="Shared image" 
+          className="max-w-[280px] rounded-lg cursor-pointer" 
+          onClick={() => window.open(imageMatch[1], '_blank')}
+        />
+      );
+    }
+    
+    // Video message
+    const videoMatch = content.match(/^\[video:(.*?)\]$/);
+    if (videoMatch) {
+      return (
+        <video src={videoMatch[1]} controls className="max-w-[280px] rounded-lg" />
+      );
+    }
+    
+    // Audio message
+    const audioMatch = content.match(/^\[audio:(.*?)\]$/);
+    if (audioMatch) {
+      return <audio src={audioMatch[1]} controls className="max-w-[250px]" />;
+    }
+    
+    // File message
+    const fileMatch = content.match(/^\[file:(.*?):(.*?)\]$/);
+    if (fileMatch) {
+      return (
+        <a
+          href={fileMatch[1]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center space-x-2 hover:opacity-80"
+        >
+          <FileText className="w-5 h-5 shrink-0" />
+          <span className="text-sm underline truncate max-w-[200px]">{fileMatch[2]}</span>
+          <Download className="w-4 h-4 shrink-0" />
+        </a>
+      );
+    }
+    
+    // Regular text
+    return <p className="text-sm whitespace-pre-wrap">{content}</p>;
+  };
+
   const selectedConvData = conversations.find(c => c.id === selectedConversation);
 
   return (
@@ -620,7 +674,7 @@ export const SimpleChat: React.FC = () => {
                             ? 'bg-primary text-primary-foreground'
                             : 'bg-muted'
                         }`}>
-                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          {renderMessageContent(message)}
                           <p className={`text-xs mt-1 ${
                             message.sender_id === user?.id
                               ? 'text-primary-foreground/70'
@@ -649,6 +703,47 @@ export const SimpleChat: React.FC = () => {
             {/* Message Input */}
             <div className="border-t border-border p-4 bg-card">
               <div className="flex items-center space-x-2">
+                <ChatAttachmentMenu
+                  userId={user?.id || ''}
+                  conversationId={selectedConversation}
+                  onFileUploaded={(url, fileName, fileType) => {
+                    // Send as a message with the file URL
+                    const content = fileType === 'image'
+                      ? `[image:${url}]`
+                      : fileType === 'video'
+                      ? `[video:${url}]`
+                      : fileType === 'audio'
+                      ? `[audio:${url}]`
+                      : `[file:${url}:${fileName}]`;
+                    
+                    // Directly send the file message
+                    const sendFileMsg = async () => {
+                      if (!user) return;
+                      const tempId = `temp-${Date.now()}-${Math.random()}`;
+                      const optimisticMessage: Message = {
+                        id: tempId,
+                        conversation_id: selectedConversation,
+                        sender_id: user.id,
+                        content,
+                        message_type: fileType,
+                        created_at: new Date().toISOString(),
+                        sender: currentUserProfile,
+                        sender_is_admin: false,
+                        isPending: true,
+                      };
+                      setMessages(prev => [...prev, optimisticMessage]);
+                      
+                      await supabase.from('user_messages').insert([{
+                        conversation_id: selectedConversation,
+                        sender_id: user.id,
+                        content,
+                        message_type: fileType,
+                      }]);
+                    };
+                    sendFileMsg();
+                  }}
+                  onEmojiSelect={(emoji) => setNewMessage(prev => prev + emoji)}
+                />
                 <Input
                   ref={inputRef}
                   placeholder="Type a message..."
