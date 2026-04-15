@@ -623,7 +623,7 @@ export const SimpleChat: React.FC = () => {
                             ? 'bg-primary text-primary-foreground'
                             : 'bg-muted'
                         }`}>
-                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          {renderMessageContent(message)}
                           <p className={`text-xs mt-1 ${
                             message.sender_id === user?.id
                               ? 'text-primary-foreground/70'
