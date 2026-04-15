@@ -652,6 +652,47 @@ export const SimpleChat: React.FC = () => {
             {/* Message Input */}
             <div className="border-t border-border p-4 bg-card">
               <div className="flex items-center space-x-2">
+                <ChatAttachmentMenu
+                  userId={user?.id || ''}
+                  conversationId={selectedConversation}
+                  onFileUploaded={(url, fileName, fileType) => {
+                    // Send as a message with the file URL
+                    const content = fileType === 'image'
+                      ? `[image:${url}]`
+                      : fileType === 'video'
+                      ? `[video:${url}]`
+                      : fileType === 'audio'
+                      ? `[audio:${url}]`
+                      : `[file:${url}:${fileName}]`;
+                    
+                    // Directly send the file message
+                    const sendFileMsg = async () => {
+                      if (!user) return;
+                      const tempId = `temp-${Date.now()}-${Math.random()}`;
+                      const optimisticMessage: Message = {
+                        id: tempId,
+                        conversation_id: selectedConversation,
+                        sender_id: user.id,
+                        content,
+                        message_type: fileType,
+                        created_at: new Date().toISOString(),
+                        sender: currentUserProfile,
+                        sender_is_admin: false,
+                        isPending: true,
+                      };
+                      setMessages(prev => [...prev, optimisticMessage]);
+                      
+                      await supabase.from('user_messages').insert([{
+                        conversation_id: selectedConversation,
+                        sender_id: user.id,
+                        content,
+                        message_type: fileType,
+                      }]);
+                    };
+                    sendFileMsg();
+                  }}
+                  onEmojiSelect={(emoji) => setNewMessage(prev => prev + emoji)}
+                />
                 <Input
                   ref={inputRef}
                   placeholder="Type a message..."
