@@ -16,8 +16,11 @@ import {
   Phone, 
   PhoneOff,
   ArrowLeft,
-  ShieldCheck
+  ShieldCheck,
+  FileText,
+  Download
 } from 'lucide-react';
+import { ChatAttachmentMenu } from './ChatAttachmentMenu';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserSearch } from './UserSearch';
